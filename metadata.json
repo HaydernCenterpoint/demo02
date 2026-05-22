@@ -1,0 +1,6 @@
+{
+  "name": "Mekenzie Industrial Automation Dashboard",
+  "description": "A multi-lingual real-time industrial monitoring dashboard for Mekenzie Factory, simulating production lines and equipment efficiency with Vietnamese, English, and Chinese translations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
