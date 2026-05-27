@@ -27,6 +27,152 @@ interface ProductionLinesViewProps {
   simulationActive: boolean;
   setSimulationActive: (active: boolean) => void;
 }
+const localProductionTranslations = {
+  vi: {
+    title: 'Điều Khiển & Cấu Hình Dây Chuyền',
+    subtitle: 'Giám sát điều tốc, cấu hình ngưỡng bảo vệ cảm biến cho từng trạm làm việc.',
+    speedLabel: 'Tốc độ dây chuyền: ',
+    btnStart: 'MỞ DÂY CHUYỀN',
+    btnStandby: 'CHẾ ĐỘ CHỜ',
+    btnStop: 'DỪNG KHẨN CẤP',
+    tabAll: 'Toàn bộ xưởng',
+    tabMain: 'Dây chuyền Chính',
+    tabCasing: 'Nhánh Casing vỏ',
+    mainLineArea: 'Vùng dây chuyền chính',
+    tuneLimits: 'Sửa Giới Hạn Bảo Vệ',
+    maxTemp: 'Cảnh báo Nhiệt độ max:',
+    maxVib: 'Cảnh báo Rung lắc max:',
+    saveSecure: 'Lưu & Khóa Cấu Hình',
+    smartRepair: 'CLICK KHẮC PHỤC',
+    doneMaintenance: 'XONG BẢO TRÌ',
+    routineMaintenance: 'BẢO TRÌ ĐỊNH KỲ',
+    btnTurnOn: 'BẬT MÁY',
+    btnTurnOff: 'OŇOFF DỪNG',
+    troubleTitle: 'Yêu cầu Phản Hồi Vận Hành',
+    troubleSub: 'Phát hiện rơ-le nhiệt ngắt dòng hoặc kẹt khay nạp mâm rung:',
+    troubleItem1: 'Bơm dầu xi-lanh trục nâng khí nén',
+    troubleItem2: 'Khởi động lại mạch driver nguồn DC 24V',
+    troubleItem3: 'Sàng lọc phôi kim loại lỗi kẹt',
+    troubleAuto: 'Bắn lệnh Khắc Phục Auto',
+    troubleIgnore: 'Bỏ qua',
+    overBoth: 'Vượt nhiệt độ & độ rung!',
+    overTemp: 'Quá nhiệt an toàn!',
+    overVib: 'Rung lắc cưỡng bức!',
+    relayActive: 'Kích hoạt rơ-le ngắt kênh cơ khí.',
+    toastBypass: 'CẢNH BÁO: Cảm biến đã được BYPASS (Bỏ qua bảo vệ)!',
+    toastSpeedWarning: 'CẢNH BÁO: Tăng tốc độ quá cao có thể gây kẹt và phát nhiệt motor!',
+    toastEmergencyStop: 'DỪNG KHẨN CẤP: Đã tạm dừng toàn bộ motor và đóng van hơi áp suất!',
+    toastStartLine: 'Đã khởi động lại toàn bộ dây chuyền hoạt động trở lại!',
+    toastStandbyLine: 'Dây chuyền đang chuyển sang chế độ CHỜ (Idle/Standby)',
+    toastToggledActive: 'Đã chuyển đổi trạng thái thiết bị sang',
+    toastToggledMaint: 'Đã chuyển chế độ bảo trì kỹ thuật!',
+    toastSaveLimits: 'Đã cập nhật ngưỡng an toàn cho',
+    toastAutoTroubleshoot: 'Sửa chữa thông minh thành công! Thiết bị đã được kết nối chạy lại.',
+    vibLabel: 'Rung lắc',
+    oeeLabel: 'OEE Trạm',
+    paramConfig: 'Cấu hình thông số',
+    bypassActive: 'BYPASS_BẬT',
+    bypassOff: 'BYPASS_TĂT',
+    activeLabel: 'Hoạt động:',
+    faultsLabel: 'Lỗi:',
+  },
+  en: {
+    title: 'Production Lines Command & Sync',
+    subtitle: 'Central variable frequency tuning, temperature & vibration thresholding.',
+    speedLabel: 'Line Speed Regulator: ',
+    btnStart: 'START WORKS',
+    btnStandby: 'STANDBY IDLE',
+    btnStop: 'EMERGENCY STOP',
+    tabAll: 'All Workshop Channels',
+    tabMain: 'Main SMT Splicing Line',
+    tabCasing: 'Casing Assembly Section',
+    mainLineArea: 'Main Line Area',
+    tuneLimits: 'Tune Safety Limits',
+    maxTemp: 'Max Allowed Temp:',
+    maxVib: 'Max Allowed Vibration:',
+    saveSecure: 'Save & Secure',
+    smartRepair: 'SMART REPAIR',
+    doneMaintenance: 'DONE MAINTENANCE',
+    routineMaintenance: 'ROUTINE MAINTENANCE',
+    btnTurnOn: 'TURN ON',
+    btnTurnOff: 'TURN OFF',
+    troubleTitle: 'Operational Response Query',
+    troubleSub: 'Detected thermal relay trip or vibration hopper blockage:',
+    troubleItem1: 'Lubricate pneumatic cylinder spindle',
+    troubleItem2: 'Reboot DC 24V servo driver circuit',
+    troubleItem3: 'Clear jammed custom metal workpieces',
+    troubleAuto: 'Inject Auto Troubleshoot',
+    troubleIgnore: 'Ignore',
+    overBoth: 'Temperature & vibration exceeded!',
+    overTemp: 'Critical over-temperature!',
+    overVib: 'Critical spindle vibration!',
+    relayActive: 'Mechanical disconnect relay engaged.',
+    toastBypass: 'CRITICAL: Safety sensors successfully bypassed for testing!',
+    toastSpeedWarning: 'WARNING: Overclocking line speed increases mechanical wear and thermal alarms!',
+    toastEmergencyStop: 'EMERGENCY STOP: All actuators and solenoid valves halted!',
+    toastStartLine: 'All equipment successfully resumed to system cycle running!',
+    toastStandbyLine: 'Line synchronized to low-idle standby mode',
+    toastToggledActive: 'Toggled machine status to',
+    toastToggledMaint: 'Toggled maintenance mode status!',
+    toastSaveLimits: 'Safety parameters saved for',
+    toastAutoTroubleshoot: 'Smart diagnostic & auto-repair workflow execution success!',
+    vibLabel: 'Vibration',
+    oeeLabel: 'Station OEE',
+    paramConfig: 'Parameter Configuration',
+    bypassActive: 'BYPASS_ACTIVE',
+    bypassOff: 'BYPASS_OFF',
+    activeLabel: 'Active:',
+    faultsLabel: 'Faults:',
+  },
+  zh: {
+    title: '工段流程控制与中控面板',
+    subtitle: '集中式变频调速，配置工位独立热成像与加速度振动过载阈值。',
+    speedLabel: '主线调频转速 Speed: ',
+    btnStart: '全线循环启动',
+    btnStandby: '闲置整备',
+    btnStop: '紧急避险停机',
+    tabAll: '总览所有工段',
+    tabMain: '主SMT封装链',
+    tabCasing: '外壳并行加工链',
+    mainLineArea: '主线工区',
+    tuneLimits: '编辑传感器报警界限',
+    maxTemp: '温度报警上限:',
+    maxVib: '振动报警上限:',
+    saveSecure: '确认保存参数',
+    smartRepair: '自动缺陷排查',
+    doneMaintenance: '恢复运行',
+    routineMaintenance: '一键离线保修',
+    btnTurnOn: '开启设备',
+    btnTurnOff: '切离断电',
+    troubleTitle: '运行反馈诊断决策',
+    troubleSub: '检测到过载继电器脱扣或振动盘送料受阻:',
+    troubleItem1: '气动顶升轴气缸加注密封油',
+    troubleItem2: '重启直流 DC 24V 伺服驱动主板',
+    troubleItem3: '清理卡阻的异形金属工件/飞边',
+    troubleAuto: '下发智能一键自愈',
+    troubleIgnore: '忽略',
+    overBoth: '温度与偏振双重超载！',
+    overTemp: '温控传感器越限！',
+    overVib: '轴承剧烈偏振！',
+    relayActive: '正在执行机械脱扣保护切断。',
+    toastBypass: '警告：传感器已成功旁路隔离保护！',
+    toastSpeedWarning: '警告：过度调高频率可能导致主轴卡阻和过载升温！',
+    toastEmergencyStop: '紧急停止：全部驱动轴及气阀已切断保护！',
+    toastStartLine: '流水线全段已进入自动循环启动状态！',
+    toastStandbyLine: '流水线正调度至低耗闲置挂起模式',
+    toastToggledActive: '已切换设备运行状态至',
+    toastToggledMaint: '已更改设备维保模式状态！',
+    toastSaveLimits: '已成功保存安全参数阈值于',
+    toastAutoTroubleshoot: '智能故障诊断与自动修复工作流执行成功！设备已恢复运行。',
+    vibLabel: '振动偏离度',
+    oeeLabel: '工位 OEE',
+    paramConfig: '传感器限额参数配置',
+    bypassActive: '旁路启用(警告)',
+    bypassOff: '旁路关闭',
+    activeLabel: '运行中:',
+    faultsLabel: '故障:',
+  }
+};
 
 export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
   currentLanguage,
@@ -37,6 +183,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
   setSimulationActive,
 }) => {
   const t: TranslationSchema = translations[currentLanguage];
+  const localT = localProductionTranslations[currentLanguage];
 
   // Active Line Branch Filter
   const [selectedBranch, setSelectedBranch] = useState<'all' | 'main' | 'casing'>('all');
@@ -81,13 +228,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
       }))
     );
     setSimulationActive(false);
-    triggerToast(
-      currentLanguage === 'vi'
-        ? 'DỪNG KHẨN CẤP: Đã tạm dừng toàn bộ motor và đóng van hơi áp suất!'
-        : currentLanguage === 'zh'
-        ? '紧急停止：全部驱动轴及气阀已切断保护！'
-        : 'EMERGENCY STOP: All actuators and solenoid valves halted!'
-    );
+    triggerToast(localT.toastEmergencyStop);
   };
 
   // Bulk operation: Start Entire Line
@@ -102,13 +243,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
       }))
     );
     setSimulationActive(true);
-    triggerToast(
-      currentLanguage === 'vi'
-        ? 'Đã khởi động lại toàn bộ dây chuyền hoạt động trở lại!'
-        : currentLanguage === 'zh'
-        ? '流水线全段已进入自动循环启动状态！'
-        : 'All equipment successfully resumed to system cycle running!'
-    );
+    triggerToast(localT.toastStartLine);
   };
 
   // Bulk operation: Pause/Standby line
@@ -121,13 +256,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
         oee: 45.0,
       }))
     );
-    triggerToast(
-      currentLanguage === 'vi'
-        ? 'Dây chuyền đang chuyển sang chế độ CHỜ (Idle/Standby)'
-        : currentLanguage === 'zh'
-        ? '流水线正调度至低耗闲置挂起模式'
-        : 'Line synchronized to low-idle standby mode'
-    );
+    triggerToast(localT.toastStandbyLine);
   };
 
   // Turn single step off/on
@@ -148,9 +277,19 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
       })
     );
     triggerToast(
-      currentLanguage === 'vi'
-        ? `Đã chuyển đổi trạng thái thiết bị sang ${targetStatus === 'running' ? 'ĐANG CHẠY' : 'DỪNG ONOFF'}`
-        : `Toggled machine status to ${targetStatus.toUpperCase()}`
+      `${localT.toastToggledActive} ${
+        targetStatus === 'running'
+          ? currentLanguage === 'vi'
+            ? 'ĐANG CHẠY'
+            : currentLanguage === 'zh'
+            ? '运行中'
+            : 'RUNNING'
+          : currentLanguage === 'vi'
+          ? 'DỪNG ONOFF'
+          : currentLanguage === 'zh'
+          ? '已停止'
+          : 'STOPPED'
+      }`
     );
   };
 
@@ -174,7 +313,9 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
     triggerToast(
       currentLanguage === 'vi'
         ? `Đã ${targetStatus === 'maintenance' ? 'đưa vào' : 'hủy bỏ'} chế độ bảo trì kỹ thuật!`
-        : `Toggled maintenance mode status`
+        : currentLanguage === 'zh'
+        ? `${targetStatus === 'maintenance' ? '已将设备切入' : '已从设备撤销'}技术维保模式！`
+        : `${targetStatus === 'maintenance' ? 'Entered' : 'Exited'} maintenance mode status!`
     );
   };
 
@@ -198,20 +339,12 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
         isBypassed: !prev[stepId].isBypassed,
       },
     }));
-    triggerToast(
-      currentLanguage === 'vi'
-        ? 'CẢNH BÁO: Cảm biến đã được BYPASS (Bỏ qua bảo vệ)!'
-        : 'CRITICAL: Safety sensors successfully bypassed for testing!'
-    );
+    triggerToast(localT.toastBypass);
   };
 
   // Apply configs action
   const handleSaveThresholds = (stepId: string, stepLabel: string) => {
-    triggerToast(
-      currentLanguage === 'vi'
-        ? `Đã cập nhật ngưỡng an toàn cho [${stepLabel}]!`
-        : `Safety parameters saved for [${stepLabel}]`
-    );
+    triggerToast(`${localT.toastSaveLimits} [${stepLabel}]!`);
     setExpandedStepConfigId(null);
 
     // If current sensor values already exceed newly configured low thresholds, update state to WARNING automatically to demonstrate interactivity!
@@ -247,11 +380,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
       })
     );
     setActiveTroubleshootingId(null);
-    triggerToast(
-      currentLanguage === 'vi'
-        ? 'Sửa chữa thông minh thành công! Thiết bị đã được kết nối chạy lại.'
-        : 'Smart diagnostic & auto-repair workflow execution success!'
-    );
+    triggerToast(localT.toastAutoTroubleshoot);
   };
 
   // Calculations for stats
@@ -272,18 +401,10 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
           <div className="space-y-1">
             <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
               <Workflow className="w-5 h-5 text-blue-500 animate-spin-slow" />
-              {currentLanguage === 'vi'
-                ? 'Điều Khiển & Cấu Hình Dây Chuyền'
-                : currentLanguage === 'zh'
-                ? '工段流程控制与中控面板'
-                : 'Production Lines Command & Sync'}
+              {localT.title}
             </h2>
             <p className="text-xs text-slate-400">
-              {currentLanguage === 'vi'
-                ? 'Giám sát điều tốc, cấu hình ngưỡng bảo vệ cảm biến cho từng trạm làm việc.'
-                : currentLanguage === 'zh'
-                ? '集中式变频调速，配置工位独立热成像与加速度振动过载阈值。'
-                : 'Central variable frequency tuning, temperature & vibration thresholding.'}
+              {localT.subtitle}
             </p>
 
             {/* Micro Stats inside Header */}
@@ -308,7 +429,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400 font-medium flex items-center gap-1">
                 <TrendingUp className="w-3.5 h-3.5 text-blue-500" />
-                {currentLanguage === 'vi' ? 'Tốc độ dây chuyền: ' : currentLanguage === 'zh' ? '主整线输送链频率 Speed: ' : 'Line Speed Regulator: '}
+                {localT.speedLabel}
                 <strong className="text-blue-400 font-mono font-bold">{speedMultiplier}%</strong>
               </span>
               <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded font-mono font-semibold">
@@ -326,19 +447,15 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
                 const numericVal = parseInt(e.target.value);
                 setSpeedMultiplier(numericVal);
                 if (numericVal > 150) {
-                  triggerToast(
-                    currentLanguage === 'vi'
-                      ? 'CẢNH BÁO: Tăng tốc độ quá cao có thể gây kẹt và phát nhiệt motor!'
-                      : 'WARNING: Overclocking line speed increases mechanical wear and thermal alarms!'
-                  );
+                  triggerToast(localT.toastSpeedWarning);
                 }
               }}
               className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
             />
             <div className="flex justify-between text-[9px] text-slate-500 font-mono">
-              <span>10% (Low Energy)</span>
-              <span>100% (Standard)</span>
-              <span>200% (Maximum Overclock)</span>
+              <span>{currentLanguage === 'vi' ? '10% (Tiết kiệm điện)' : currentLanguage === 'zh' ? '10% (低能耗模式)' : '10% (Low Energy)'}</span>
+              <span>{currentLanguage === 'vi' ? '100% (Tiêu chuẩn)' : currentLanguage === 'zh' ? '100% (标准转速)' : '100% (Standard)'}</span>
+              <span>{currentLanguage === 'vi' ? '200% (Tối đa/Overclock)' : currentLanguage === 'zh' ? '200% (最大超频)' : '200% (Maximum Overclock)'}</span>
             </div>
           </div>
 
@@ -349,7 +466,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
               className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-950/40 cursor-pointer transition-all border border-emerald-500/20 active:scale-95"
             >
               <Play className="w-4 h-4 fill-white" />
-              <span>{currentLanguage === 'vi' ? 'MỞ DÂY CHUYỀN' : currentLanguage === 'zh' ? '全线循环启动' : 'START WORKS'}</span>
+              <span>{localT.btnStart}</span>
             </button>
 
             <button
@@ -357,7 +474,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
               className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 hover:text-slate-100 text-slate-300 font-semibold text-xs rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-all border border-slate-700/60 active:scale-95"
             >
               <Square className="w-3.5 h-3.5" />
-              <span>{currentLanguage === 'vi' ? 'CHẾ ĐỘ CHỜ' : currentLanguage === 'zh' ? '闲置整备' : 'STANDBY IDLE'}</span>
+              <span>{localT.btnStandby}</span>
             </button>
 
             <button
@@ -365,7 +482,7 @@ export const ProductionLinesView: React.FC<ProductionLinesViewProps> = ({
               className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1.5 shadow-lg shadow-red-950/50 animate-pulse border border-red-500 cursor-pointer transition-all active:scale-95"
             >
               <AlertOctagon className="w-4 h-4" />
-              <span>{currentLanguage === 'vi' ? 'DỪNG KHẨN CẤP' : currentLanguage === 'zh' ? '紧急避险停机' : 'EMERGENCY STOP'}</span>
+              <span>{localT.btnStop}</span>
             </button>
           </div>
         </div>

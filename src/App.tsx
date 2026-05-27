@@ -41,6 +41,7 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [activeMenu, setActiveMenu] = useState<string>('overview');
   const [simulationActive, setSimulationActive] = useState<boolean>(true);
+  const [plcStatus, setPlcStatus] = useState<any>({ connected: false, enabled: false, ip: '192.168.1.250', port: 5007 });
   const [notificationsOpen, setNotificationsOpen] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   
@@ -113,52 +114,82 @@ export default function App() {
     return `${formattedDateTime} - ${shiftText}`;
   };
 
-  // Sensor drift simulation hook (Updates numbers every 3.5 seconds if active)
+  // Load baseline state and establish real-time SSE stream on mount
   useEffect(() => {
-    if (!simulationActive) return;
+    // 1. Fetch initial baseline
+    fetch('/api/state')
+      .then((res) => res.json())
+      .then((data) => {
+        setSteps(data.steps);
+        setAlerts(data.alerts);
+        setYieldCounter(data.yieldCounter);
+        setDefectCounter(data.defectCounter);
+        setExtraOeeShift(data.extraOeeShift);
+        setSimulationActive(data.simulationActive);
+        if (data.plcStatus) setPlcStatus(data.plcStatus);
+      })
+      .catch((err) => console.error('Error fetching baseline state:', err));
 
-    const interval = setInterval(() => {
-      // 1. Simulate production products progress increment
-      setYieldCounter((prev) => prev + Math.floor(Math.random() * 2) + 1);
+    // 2. Open Server-Sent Events stream for live updates
+    const sse = new EventSource('/api/stream');
+    sse.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'update') {
+          setSteps(data.steps);
+          setAlerts(data.alerts);
+          setYieldCounter(data.yieldCounter);
+          setDefectCounter(data.defectCounter);
+          setExtraOeeShift(data.extraOeeShift);
+          setSimulationActive(data.simulationActive);
+          if (data.plcStatus) setPlcStatus(data.plcStatus);
+        }
+      } catch (err) {
+        console.error('Error parsing SSE telemetry update:', err);
+      }
+    };
 
-      // 2. Slightly fluctuate temperature and vibration levels
-      setSteps((prevSteps) => {
-        return prevSteps.map((step) => {
-          if (step.status === 'stopped') return step;
+    return () => {
+      sse.close();
+    };
+  }, []);
 
-          // Introduce small variations
-          const tempDelta = (Math.random() - 0.5) * 1.5;
-          const vibDelta = (Math.random() - 0.5) * 0.3;
-          let nextTemp = step.temp + tempDelta;
-          let nextVib = step.vibration + vibDelta;
+  // Action: Toggle core active simulator loop on backend
+  const handleToggleSimulation = (active: boolean) => {
+    fetch('/api/toggle-simulation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active }),
+    })
+      .then(() => {
+        setSimulationActive(active);
+      })
+      .catch((err) => console.error('Error toggling simulation:', err));
+  };
 
-          // Enforce physical bounds
-          if (nextTemp < 20) nextTemp = 20;
-          if (nextVib < 0.1) nextVib = 0.1;
+  // Wrapper function to sync steps mutations (like form changes, manual overrides) with the backend
+  const syncStepsWithBackend = (newSteps: FlowStep[] | ((prev: FlowStep[]) => FlowStep[])) => {
+    const nextSteps = typeof newSteps === 'function' ? (newSteps as any)(steps) : newSteps;
+    setSteps(nextSteps);
 
-          // If over-shaking, could elevate warning triggers
-          let nextStatus = step.status;
-          if (nextTemp > 75) {
-            nextStatus = 'error';
-          } else if (nextTemp > 58) {
-            nextStatus = 'warning';
-          }
+    fetch('/api/sync-steps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ steps: nextSteps }),
+    }).catch((err) => console.error('Error syncing steps:', err));
+  };
 
-          return {
-            ...step,
-            temp: nextTemp,
-            vibration: nextVib,
-            status: nextStatus as StatusType,
-          };
-        });
-      });
+  // Wrapper function to sync alerts mutations with the backend
+  const syncAlertsWithBackend = (newAlerts: AlertItem[] | ((prev: AlertItem[]) => AlertItem[])) => {
+    const nextAlerts = typeof newAlerts === 'function' ? (newAlerts as any)(alerts) : newAlerts;
+    setAlerts(nextAlerts);
 
-      // 3. Fluctuate global OEE slightly
-      setExtraOeeShift((prev) => prev + (Math.random() - 0.5) * 0.4);
-    }, 3500);
-
-    return () => clearInterval(interval);
-  }, [simulationActive]);
+    fetch('/api/sync-alerts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alerts: nextAlerts }),
+    }).catch((err) => console.error('Error syncing alerts:', err));
+  };
 
   // Sync selectedStep details view when list state changes
   useEffect(() => {
@@ -181,96 +212,50 @@ export default function App() {
 
   // Update specific step status (running, stopped, maintenance, warns, error)
   const handleUpdateStepStatus = (stepId: string, newStatus: StatusType) => {
-    setSteps((prev) =>
-      prev.map((s) => {
-        if (s.id === stepId) {
-          // Adjust sensors to fit status context
-          let adjustedTemp = s.temp;
-          let adjustedVib = s.vibration;
-          let adjustedOee = s.oee;
-
-          if (newStatus === 'stopped') {
-            adjustedTemp = 18.0;
-            adjustedVib = 0.0;
-            adjustedOee = 0.0;
-          } else if (newStatus === 'running') {
-            adjustedTemp = 36.5;
-            adjustedVib = 1.2;
-            adjustedOee = 91.0;
-          } else if (newStatus === 'maintenance') {
-            adjustedTemp = 24.2;
-            adjustedVib = 0.2;
-            adjustedOee = 0.0;
-          }
-
-          return {
-            ...s,
-            status: newStatus,
-            temp: adjustedTemp,
-            vibration: adjustedVib,
-            oee: adjustedOee,
-          };
-        }
-        return s;
-      })
-    );
-    triggerToast(t.addAlertToast);
+    fetch('/api/step-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stepId, newStatus }),
+    })
+      .then(() => triggerToast(t.addAlertToast))
+      .catch((err) => console.error('Error updating step status:', err));
   };
 
   // Turn off / resolve specific active alarm
   const handleResolveAlert = (id: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, isResolved: true } : a))
-    );
-    // Decrease defect category count sometimes
-    setDefectCounter((prev) => Math.max(0, prev - 1));
-    triggerToast(t.alertResolved);
+    fetch('/api/resolve-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alertId: id }),
+    })
+      .then(() => triggerToast(t.alertResolved))
+      .catch((err) => console.error('Error resolving alert:', err));
   };
 
   // Resolve all active alarms at once
   const handleResolveAllAlerts = () => {
-    setAlerts((prev) => prev.map((a) => ({ ...a, isResolved: true })));
-    setDefectCounter(0);
-    triggerToast(language === 'vi' ? 'Đã xử lý tất cả cảnh báo thành công!' : language === 'zh' ? '已成功处理所有警报！' : 'All alerts resolved successfully!');
+    fetch('/api/resolve-all-alerts', {
+      method: 'POST',
+    })
+      .then(() => {
+        const msg =
+          language === 'vi'
+            ? 'Đã xử lý tất cả cảnh báo thành công!'
+            : language === 'zh'
+            ? '已成功处理所有警报！'
+            : 'All alerts resolved successfully!';
+        triggerToast(msg);
+      })
+      .catch((err) => console.error('Error resolving all alerts:', err));
   };
 
   // Inject dynamic user-triggered simulated warning
   const handleSimulateAlert = () => {
-    const hours = new Date().getHours().toString().padStart(2, '0');
-    const minutes = new Date().getMinutes().toString().padStart(2, '0');
-    const timeText = `${hours}:${minutes}`;
-
-    const simOptions: { title: keyof typeof t; sub: keyof typeof t; status: 'warning' | 'error' }[] = [
-      { title: 'alertTempError', sub: 'alertTempErrorSub', status: 'warning' },
-      { title: 'alertServoError', sub: 'alertServoErrorSub', status: 'error' },
-      { title: 'alertMaterialShortage', sub: 'alertMaterialShortageSub', status: 'warning' },
-    ];
-
-    const pick = simOptions[Math.floor(Math.random() * simOptions.length)];
-
-    const newAlert: AlertItem = {
-      id: `sim-a-${Date.now()}`,
-      titleKey: pick.title as any,
-      subKey: pick.sub as any,
-      status: pick.status,
-      time: timeText,
-      isResolved: false,
-    };
-
-    setAlerts((prev) => [newAlert, ...prev]);
-    setDefectCounter((prev) => prev + 1);
-
-    // Turn step index 5 or 6 to hot temperatures so it aligns visually with the flow
-    setSteps((prev) =>
-      prev.map((s) => {
-        if (s.id === 's6') {
-          return { ...s, status: 'error', temp: 88.5, vibration: 7.2 };
-        }
-        return s;
-      })
-    );
-
-    triggerToast(t.addAlertToast);
+    fetch('/api/simulate-alert', {
+      method: 'POST',
+    })
+      .then(() => triggerToast(t.addAlertToast))
+      .catch((err) => console.error('Error simulating alert:', err));
   };
 
   // Toggle visual fullscreen simulation in preview or browser iframe
@@ -345,8 +330,8 @@ export default function App() {
             <button
               id="btn-trigger-simulator-toggle"
               onClick={() => {
-                setSimulationActive(!simulationActive);
-                triggerToast(simulationActive ? t.simulationPaused : t.simulationActive);
+                handleToggleSimulation(!simulationActive);
+                triggerToast(!simulationActive ? t.simulationActive : t.simulationPaused);
               }}
               className={`hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
                 simulationActive
@@ -516,16 +501,16 @@ export default function App() {
             <ProductionLinesView
               currentLanguage={language}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               simulationActive={simulationActive}
-              setSimulationActive={setSimulationActive}
+              setSimulationActive={handleToggleSimulation}
             />
           ) : activeMenu === 'devices' ? (
             <DevicesView
               currentLanguage={language}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               simulationActive={simulationActive}
             />
@@ -533,9 +518,9 @@ export default function App() {
             <AlertsView
               currentLanguage={language}
               alerts={alerts}
-              setAlerts={setAlerts}
+              setAlerts={syncAlertsWithBackend}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               onSimulateAlert={handleSimulateAlert}
               defectCounter={defectCounter}
@@ -547,7 +532,7 @@ export default function App() {
             <TasksView
               currentLanguage={language}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               simulationActive={simulationActive}
             />
@@ -555,7 +540,7 @@ export default function App() {
             <MaintenanceView
               currentLanguage={language}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               simulationActive={simulationActive}
             />
@@ -563,7 +548,7 @@ export default function App() {
             <ReportsView
               currentLanguage={language}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               simulationActive={simulationActive}
             />
@@ -571,7 +556,7 @@ export default function App() {
             <EnergyView
               currentLanguage={language}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
               triggerToast={triggerToast}
               simulationActive={simulationActive}
             />
@@ -580,10 +565,11 @@ export default function App() {
               currentLanguage={language}
               setLanguage={setLanguage}
               simulationActive={simulationActive}
-              setSimulationActive={setSimulationActive}
+              setSimulationActive={handleToggleSimulation}
               triggerToast={triggerToast}
               steps={steps}
-              setSteps={setSteps}
+              setSteps={syncStepsWithBackend}
+              plcStatus={plcStatus}
             />
           ) : (
             <>
@@ -658,7 +644,7 @@ export default function App() {
               {/* ROW 2: Middle interactive process flow + sidebar notifications */}
               <section className="grid grid-cols-1 xl:grid-cols-3 gap-6" id="middle-dashboard-grid">
                 {/* Left/Middle Column (2 xl span): Central Flow diagram */}
-                <div className="xl:col-span-2">
+                <div className="xl:col-span-2 h-full">
                   <FlowDiagram
                     currentLanguage={language}
                     steps={steps}
@@ -670,7 +656,7 @@ export default function App() {
                 </div>
 
                 {/* Right Column: Latest alarm center */}
-                <div className="xl:col-span-1">
+                <div className="xl:col-span-1 h-full">
                   <AlertsSection
                     currentLanguage={language}
                     alerts={alerts}

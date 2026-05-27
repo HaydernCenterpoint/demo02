@@ -73,7 +73,10 @@ const localTranslations = {
     alarmCode: 'Mã số',
     assignedStation: 'Trạm liên đới',
     resolvedTime: 'Đã khắc phục lúc',
-    alertCleared: 'Mô-đun cảnh báo đã được reset thành công!'
+    alertCleared: 'Mô-đun cảnh báo đã được reset thành công!',
+    toastResolveAll: 'Dọn dẹp thành công! Toàn bộ cảnh báo sự cố đã được đóng xác nhận.',
+    diagTitle: 'Chẩn đoán thông minh AI:',
+    diagText: 'Khi phát hiện mã lỗi hex trong Holding Register (như 0x05F2), hệ thống liên lạc thông qua giao thức Modbus TCP sẽ lập tức kích hoạt lỗi đỏ trạm số 6. Việc giải quyết cảnh báo phía bên trái sẽ xóa ghi đè tín hiệu và đồng bộ hóa lại tốc độ dây chuyền!'
   },
   en: {
     title: 'Alarm Desk & Incident Command Center',
@@ -109,7 +112,10 @@ const localTranslations = {
     alarmCode: 'Alarm ID',
     assignedStation: 'Affected Unit',
     resolvedTime: 'Resolved at',
-    alertCleared: 'Alarm cleared successfully, status normalized!'
+    alertCleared: 'Alarm cleared successfully, status normalized!',
+    toastResolveAll: 'All Active alerts acknowledged. Manufacturing states restored.',
+    diagTitle: 'AI Diagnostic Note:',
+    diagText: 'Holding registers scan telemetry bits dynamically. Clearing pending alerts on the left automatically updates Modbus flags, restoring normal clock speeds across physical PLC slaves.'
   },
   zh: {
     title: '警报与故障诊断指挥中心',
@@ -145,7 +151,10 @@ const localTranslations = {
     alarmCode: '报警代码',
     assignedStation: '事件引发单元',
     resolvedTime: '已于此时间解除',
-    alertCleared: '警报已解除，设备指标恢复正常!'
+    alertCleared: '警报已解除，设备指标恢复正常!',
+    toastResolveAll: '清除成功！全部活动警报已被确认关闭，生产状态已恢复正常。',
+    diagTitle: 'AI 智能诊断:',
+    diagText: '当保持寄存器检测到十六进制错误代码（如0x05F2）时，系统会立即通过Modbus TCP协议在6号站触发红色故障。解除左侧的警报可清除信号覆盖并重新同步流水线速度！'
   }
 };
 
@@ -255,11 +264,7 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
       })
     );
 
-    triggerToast(
-      currentLanguage === 'vi'
-        ? 'Dọn dẹp thành công! Toàn bộ cảnh báo sự cố đã được đóng xác nhận.'
-        : 'All Active alerts acknowledged. Manufacturing states restored.'
-    );
+    triggerToast(localT.toastResolveAll);
   };
 
   // Export incident diagnostics to clipboard or simulation
@@ -479,8 +484,17 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
                     ? <AlertTriangle className="w-4.5 h-4.5 text-amber-500 flex-shrink-0" />
                     : <Info className="w-4.5 h-4.5 text-blue-400 flex-shrink-0" />;
 
-                  // Extract mock station associations automatically
-                  const estimatedStationNum = item.titleKey.includes('Temp') || item.titleKey.includes('Servo') ? 'Trạm 6 (Mechanical Assembly)' : 'Trạm 1 (Vacuum Feeder)';
+                  const estimatedStationNum = item.titleKey.includes('Temp') || item.titleKey.includes('Servo')
+                    ? (currentLanguage === 'vi'
+                      ? 'Trạm 6 (Lắp ráp cơ khí)'
+                      : currentLanguage === 'zh'
+                      ? '6号工位 (机械装配线)'
+                      : 'Station 6 (Mechanical Assembly)')
+                    : (currentLanguage === 'vi'
+                      ? 'Trạm 1 (Phễu hút chân không)'
+                      : currentLanguage === 'zh'
+                      ? '1号工位 (真空供料头)'
+                      : 'Station 1 (Vacuum Feeder)');
 
                   return (
                     <div
@@ -600,11 +614,9 @@ export const AlertsView: React.FC<AlertsViewProps> = ({
               <Sparkles className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
               <div>
                 <span className="font-bold text-slate-300">
-                  {currentLanguage === 'vi' ? 'Chẩn đoán thông minh AI:' : 'AI Diagnostic Note:'}
+                  {localT.diagTitle}
                 </span>{' '}
-                {currentLanguage === 'vi'
-                  ? 'Khi phát hiện mã lỗi hex trong Holding Register (như 0x05F2), hệ thống liên lạc thông qua giao thức Modbus TCP sẽ lập tức kích hoạt lỗi đỏ trạm số 6. Việc giải quyết cảnh báo phía bên trái sẽ xóa ghi đè tín hiệu và đồng bộ hóa lại tốc độ dây chuyền!'
-                  : 'Holding registers scan telemetry bits dynamically. Clearing pending alerts on the left automatically updates Modbus flags, restoring normal clock speeds across physical PLC slaves.'}
+                {localT.diagText}
               </div>
             </div>
 

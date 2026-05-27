@@ -79,7 +79,22 @@ const localMaintenanceTranslations = {
     statusScheduled: 'Đang xếp ca',
     statusActive: 'Đang sửa chữa',
     statusCertified: 'Đã kiểm nghiệm đạt',
-    toastCreateSuccess: 'Đã tạo và thông báo phiếu bảo trì đột xuất qua loa dải PLC!'
+    toastCreateSuccess: 'Đã tạo và thông báo phiếu bảo trì đột xuất qua loa dải PLC!',
+    macro12Stations: 'Mức vĩ mô 12 trạm máy',
+    exceedingVibration: 'Đang vượt ngưỡng rung',
+    needGreaseRefill: 'Cần bổ sung mỡ nạp',
+    shiftDuty: 'ca trực',
+    operatingDevice: 'Đang thao tác thiết bị',
+    mechanicalWearRate: 'Mức mài mòn cơ',
+    coolantStatus: 'Trạng thái dung dịch',
+    centerOffsetRange: 'Dải sai lệch tâm',
+    searchPlaceholder: 'Lọc nhật ký, kỹ sư...',
+    tableHeaderStation: 'Trạm máy',
+    tableHeaderType: 'Loại xử lý',
+    tableHeaderTime: 'Mốc trễ',
+    tableHeaderStatus: 'Trạng thái',
+    scadaDutyEngineer: 'Kỹ sư trực ca SCADA',
+    standardRule: 'ℹ️ Quy chuẩn số: 1018-DVT: Mỗi khi trạm máy hoạt động ở trạng thái Bảo trì, hệ thống máy chủ phụ sẽ cách ly hoàn toàn dữ liệu lỗi giả lập của cảm biến để kỹ sư tháo lắp và tra dầu không làm sai số tổng thể.'
   },
   en: {
     title: 'Predictive & Preventive Maintenance Hub',
@@ -117,7 +132,22 @@ const localMaintenanceTranslations = {
     statusScheduled: 'Scheduled (Awaiting)',
     statusActive: 'Active (Repairing)',
     statusCertified: 'Certified (Closed)',
-    toastCreateSuccess: 'Custom emergency maintenance token registered in Scada database!'
+    toastCreateSuccess: 'Custom emergency maintenance token registered in Scada database!',
+    macro12Stations: 'Macro scale 12 workstations',
+    exceedingVibration: 'Vibration exceeding limit',
+    needGreaseRefill: 'Grease replenishment required',
+    shiftDuty: 'shifts',
+    operatingDevice: 'Currently operating device',
+    mechanicalWearRate: 'Mechanical wear level',
+    coolantStatus: 'Fluid/Coolant status',
+    centerOffsetRange: 'Center offset deviation',
+    searchPlaceholder: 'Filter logs, engineers...',
+    tableHeaderStation: 'Workstation',
+    tableHeaderType: 'Action Type',
+    tableHeaderTime: 'Timestamp',
+    tableHeaderStatus: 'Status',
+    scadaDutyEngineer: 'SCADA Duty Engineer',
+    standardRule: 'ℹ️ Standard No. 1018-DVT: Whenever a workstation operates in Maintenance status, the secondary server isolates simulated sensor error data to ensure assembly/greasing does not alter overall calculations.'
   },
   zh: {
     title: '预测性与预防性设备维保终端',
@@ -140,7 +170,7 @@ const localMaintenanceTranslations = {
     quickMaintSub: '对6号打螺丝工位执行冷却导轨油脂喷涂宏命令。',
     quickCalibrator: '一键校准1号真空吸盘',
     quickCalibratorSub: '对s1真空供料头进行原点纠偏重置。',
-    recentWorkLogs: '大班长维保调度执行日志',
+    recentWorkLogs: '大班长维保调度 execution log',
     assignedTech: '维保执行工程师',
     regCode: '工单凭条',
     createMaintTicket: '下发额外非计划性维保命令',
@@ -155,7 +185,22 @@ const localMaintenanceTranslations = {
     statusScheduled: '排队审核中',
     statusActive: '正在维修在线',
     statusCertified: '技术总工程师认证闭环',
-    toastCreateSuccess: '新的维护派发信息已被打入车间操作显示器!'
+    toastCreateSuccess: '新的维护派发信息已被打入车间操作显示器!',
+    macro12Stations: '宏观12个设备站指标',
+    exceedingVibration: '振动幅度超标',
+    needGreaseRefill: '需补充润滑脂',
+    shiftDuty: '值班班次',
+    operatingDevice: '正在操作设备中',
+    mechanicalWearRate: '机械磨损程度',
+    coolantStatus: '润滑阻尼液状态',
+    centerOffsetRange: '偏心偏差范围',
+    searchPlaceholder: '过滤日志、工程师...',
+    tableHeaderStation: '设备站',
+    tableHeaderType: '处理类型',
+    tableHeaderTime: '时间戳',
+    tableHeaderStatus: '状态',
+    scadaDutyEngineer: 'SCADA值班工程师',
+    standardRule: 'ℹ️ 规范编号: 1018-DVT: 每当工作站处于维保状态时，辅助服务器将完全隔离模拟传感器错误数据，确保工程师拆装和注油时不会导致系统总体数据偏差。'
   }
 };
 
@@ -271,7 +316,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
     const newTicket: MaintenanceTicket = {
       id: codeId,
       stationId: stepId,
-      technician: 'Kỹ sư trực ca SCADA',
+      technician: localT.scadaDutyEngineer,
       type: 'hardware',
       time: nowText,
       status: 'active',
@@ -279,7 +324,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
 
     setTickets((prev) => [newTicket, ...prev]);
 
-    const resolvedLabel = currentLanguage === 'vi' ? translations.vi.statusMaintenance : translations.en.statusMaintenance;
     const nameLabel = translations[currentLanguage][focusedStep.labelKey] as string;
     triggerToast(`${localT.toastStartMaint} ${nameLabel}`);
   };
@@ -343,6 +387,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
     triggerToast(
       currentLanguage === 'vi'
         ? 'Bạc đạn trượt s6 đã được bôi mỡ nhiệt độ cao tự động! Sát số chao đảo hạ từ 1.8mm xuống 1.0mm.'
+        : currentLanguage === 'zh'
+        ? '6号主轴导轨已自动完成高温润滑油加注！机械抖动公差已恢复稳定。'
         : 'Spindle s6 auto grease cycle injected! Mechanical friction bias stabilized.'
     );
 
@@ -365,6 +411,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
     triggerToast(
       currentLanguage === 'vi'
         ? 'Phễu nạp s1 đã hiệu chuẩn mốc gốc laser quang học hoàn hảo!'
+        : currentLanguage === 'zh'
+        ? '1号真空吸盘供料嘴光电零位校准校验成功！'
         : 'Vacuum picker s1 optoelectronic zero-point calibration verified.'
     );
 
@@ -414,7 +462,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
             <div>
               <span className="text-[10px] text-slate-400 font-bold uppercase">{localT.metricHealth}</span>
               <h4 className="text-lg font-mono font-bold text-emerald-400 mt-1">{integrityScores.integrity}%</h4>
-              <p className="text-[9.5px] text-slate-500">Mức vĩ mô 12 trạm máy</p>
+              <p className="text-[9.5px] text-slate-500">{localT.macro12Stations}</p>
             </div>
             <Activity className="w-6 h-6 text-emerald-500/20" />
           </div>
@@ -424,7 +472,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
             <div>
               <span className="text-[10px] text-slate-400 font-bold uppercase">{localT.bearingWear}</span>
               <h4 className="text-lg font-mono font-bold text-amber-500 mt-1">{steps.filter(s => s.status === 'warning').length} trạm</h4>
-              <p className="text-[9.5px] text-slate-500">Đang vượt ngưỡng rung</p>
+              <p className="text-[9.5px] text-slate-500">{localT.exceedingVibration}</p>
             </div>
             <Gauge className="w-6 h-6 text-amber-500/20" />
           </div>
@@ -434,7 +482,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
             <div>
               <span className="text-[10px] text-slate-400 font-bold uppercase">{localT.metricLubricant}</span>
               <h4 className="text-lg font-mono font-bold text-blue-400 mt-1">{integrityScores.lowGrease} / 12</h4>
-              <p className="text-[9.5px] text-slate-500">Cần bổ sung mỡ nạp</p>
+              <p className="text-[9.5px] text-slate-500">{localT.needGreaseRefill}</p>
             </div>
             <Droplet className="w-6 h-6 text-blue-500/20" />
           </div>
@@ -443,8 +491,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
           <div className="bg-blue-500/5 p-3.5 border border-blue-500/15 rounded-lg flex items-center justify-between">
             <div>
               <span className="text-[10px] text-blue-400 font-bold uppercase">{localT.metricActiveJobs}</span>
-              <h4 className="text-lg font-mono font-bold text-white">{integrityScores.activeTickets} ca trực</h4>
-              <p className="text-[9.5px] text-blue-400">Đang thao tác thiết bị</p>
+              <h4 className="text-lg font-mono font-bold text-white">{integrityScores.activeTickets} {localT.shiftDuty}</h4>
+              <p className="text-[9.5px] text-blue-400">{localT.operatingDevice}</p>
             </div>
             <Wrench className="w-6 h-6 text-blue-500/40 animate-swing" />
           </div>
@@ -607,7 +655,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                         />
                       </div>
                     </div>
-                    <span className="text-[9px] text-slate-500">Mức mài mòn cơ</span>
+                    <span className="text-[9px] text-slate-500">{localT.mechanicalWearRate}</span>
                   </div>
 
                   {/* Gauge 2: Grease state */}
@@ -621,12 +669,12 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                       </div>
                       <div className="w-full bg-slate-900 h-1 rounded-full overflow-hidden mt-1 max-w-[80px] mx-auto">
                         <div
-                          className="h-full bg-blue-500 rounded-full"
+                           className="h-full bg-blue-500 rounded-full"
                           style={{ width: `${wearScores[focusedStep.id]?.grease || 85}%` }}
                         />
                       </div>
                     </div>
-                    <span className="text-[9px] text-slate-500">Trạng thái dung dịch</span>
+                    <span className="text-[9px] text-slate-500">{localT.coolantStatus}</span>
                   </div>
 
                   {/* Gauge 3: Calibration offset bias */}
@@ -647,7 +695,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                         />
                       </div>
                     </div>
-                    <span className="text-[9px] text-slate-500">Dải sai lệch tâm</span>
+                    <span className="text-[9px] text-slate-500">{localT.centerOffsetRange}</span>
                   </div>
 
                 </div>
@@ -659,6 +707,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                     <strong>Chẩn đoán PLC SCADA:</strong>{' '}
                     {currentLanguage === 'vi'
                       ? 'Nhiệt độ hiện tải đạt ' + focusedStep.temp.toFixed(1) + ' °C với mức rung biên động ' + focusedStep.vibration.toFixed(2) + ' mm/s. Bảng kỹ thuật đề xuất kiểm tra gioăng bôi trơn định kỳ sau mỗi 400 giờ chu kỳ sản xuất liên tục.'
+                      : currentLanguage === 'zh'
+                      ? '当前实测温度稳定在 ' + focusedStep.temp.toFixed(1) + ' °C，电机轴端振动速度为 ' + focusedStep.vibration.toFixed(2) + ' mm/s。能效智理终端建议每隔 400 运行小时对密封圈与活动轴承进行例行注脂与清洁保养。'
                       : 'Active temperature metrics are stabilized at ' + focusedStep.temp.toFixed(1) + 'C. Scada recommends schedule flushing on gaskets and rotary seals before wear values reach 85% upper threshold bound.'}
                   </p>
                 </div>
@@ -683,7 +733,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 </span>
                 <input
                   type="text"
-                  placeholder="Lọc nhật ký, kỹ sư..."
+                  placeholder={localT.searchPlaceholder}
                   value={maintSearch}
                   onChange={(e) => setMaintSearch(e.target.value)}
                   className="w-full bg-slate-950 text-white text-xs pl-8 pr-3 py-2 rounded-lg border border-slate-900 outline-none focus:border-blue-500/60"
@@ -697,11 +747,11 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
                 <thead>
                   <tr className="border-b border-slate-900 bg-slate-950/40 font-mono text-[10px] text-slate-500 tracking-wider">
                     <th className="p-2.5">{localT.regCode}</th>
-                    <th className="p-2.5">Trạm máy</th>
+                    <th className="p-2.5">{localT.tableHeaderStation}</th>
                     <th className="p-2.5">{localT.assignedTech}</th>
-                    <th className="p-2.5">Loại xử lý</th>
-                    <th className="p-2.5">Mốc trễ</th>
-                    <th className="p-2.5">Trạng thái</th>
+                    <th className="p-2.5">{localT.tableHeaderType}</th>
+                    <th className="p-2.5">{localT.tableHeaderTime}</th>
+                    <th className="p-2.5">{localT.tableHeaderStatus}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -813,7 +863,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
 
             {/* Micro alert instruction */}
             <div className="mt-6 p-4 rounded-xl bg-slate-950/60 border border-slate-900 text-[10.5px] text-slate-400 leading-relaxed font-sans">
-              <span className="font-bold text-slate-200">ℹ️ Quy chuẩn số: 1018-DVT:</span> Mỗi khi trạm máy hoạt động ở trạng thái Bảo trì, hệ thống máy chủ phụ sẽ cách ly hoàn toàn dữ liệu lỗi giả lập của cảm biến để kỹ sư tháo lắp và tra dầu không làm sai số tổng thể.
+              {localT.standardRule}
             </div>
 
           </div>

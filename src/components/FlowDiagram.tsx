@@ -120,7 +120,7 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({
   const casingSteps = steps.filter((s) => s.branch === 'casing');
 
   return (
-    <div className="bg-[#111827]/70 border border-slate-800/80 rounded-xl p-5 shadow-lg relative" id="flow-diagram-panel">
+    <div className="bg-[#111827]/70 border border-slate-800/80 rounded-xl p-5 shadow-lg relative flex flex-col h-full" id="flow-diagram-panel">
       {/* Title */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-slate-100 text-sm font-semibold tracking-wide flex items-center gap-2">
@@ -154,8 +154,8 @@ export const FlowDiagram: React.FC<FlowDiagramProps> = ({
       </div>
 
       {/* Main flow-scroll-wrapper to guarantee responsive viewport protection */}
-      <div className="overflow-x-auto pb-4 max-w-full" style={{ scrollbarWidth: 'thin' }}>
-        <div className="min-w-[1020px] py-2 relative flex flex-col gap-10">
+      <div className="overflow-x-auto pb-4 max-w-full flex-1 flex flex-col justify-center min-h-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="min-w-[1020px] py-4 relative flex flex-col gap-10 my-auto">
           {/* TOP Main conveyor flow */}
           <div className="flex items-center gap-2">
             {mainSteps.map((step, idx) => {

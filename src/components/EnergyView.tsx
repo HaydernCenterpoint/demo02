@@ -87,7 +87,15 @@ const localEnergyTranslations = {
     tariffOffPeak: 'Giờ Thấp Điểm (1,010đ/kWh)',
     savingsTitle: 'Hiệu quả tối ưu hóa tuần này',
     savingsCoal: 'Than đá giảm thiểu',
-    savingsCost: 'Chi phí khấu hao tiết kiệm'
+    savingsCost: 'Chi phí khấu hao tiết kiệm',
+    searchPlaceholderDevice: 'Tìm kiếm trạm phát, điện áp...',
+    normalMode: 'Chế độ Thường',
+    noStations: 'Không tìm thấy trạm phù hợp...',
+    telemetryAvgLoad: 'Tải Trung Bình',
+    telemetryPeakLoad: 'Đỉnh Tải Ghi Nhận',
+    telemetryLoadEff: 'Hiệu Suất Tải',
+    aiAdvice: 'Tiết diện tụ điện phân xưởng lắp ráp đang thừa 4% hệ điện cảm. Tự động tắt máy sới s6 khi lò rèn ở trạng thái stopped giúp bù 0.05 Cosφ tức thời.',
+    weeklySavingsCost: '4,850,000 đ'
   },
   en: {
     title: 'SCADA Energy Management & Smart Grid Dashboard',
@@ -129,10 +137,18 @@ const localEnergyTranslations = {
     gridTariffLabel: 'Active Tariff Scheme Slot',
     tariffPeak: 'Peak Hours ($0.138/kWh)',
     tariffNormal: 'Regular Shift ($0.072/kWh)',
-    tariffOffPeak: 'Off-Peak Mid-night ($0.043/kWh)',
+    tariffOffPeak: 'Off-Peak Midnight ($0.043/kWh)',
     savingsTitle: 'Aggregated Weekly Conservation Goals',
     savingsCoal: 'Coal Combustion Avoided',
-    savingsCost: 'Accrued Cost Reductions'
+    savingsCost: 'Accrued Cost Reductions',
+    searchPlaceholderDevice: 'Search station, voltage...',
+    normalMode: 'Normal mode',
+    noStations: 'No matching stations found...',
+    telemetryAvgLoad: 'Average Load',
+    telemetryPeakLoad: 'Peak Load Recorded',
+    telemetryLoadEff: 'Load Efficiency',
+    aiAdvice: 'Automatic capacitor monitoring detects active capacitance. Shunt idle elements on Station 6 to automatically balance phase harmonics.',
+    weeklySavingsCost: '$230.50'
   },
   zh: {
     title: 'SCADA工业智能低碳能效管理终端',
@@ -177,7 +193,15 @@ const localEnergyTranslations = {
     tariffOffPeak: '低负载谷段 (优惠清闲用电)',
     savingsTitle: '本周能效整改综合成绩单',
     savingsCoal: '折合标准煤消耗减少',
-    savingsCost: '企业基本用电规费节支'
+    savingsCost: '企业基本用电规费节支',
+    searchPlaceholderDevice: '搜索配电站、电压...',
+    normalMode: '常规模式',
+    noStations: '没有找到匹配的配电站...',
+    telemetryAvgLoad: '平均有功负载',
+    telemetryPeakLoad: '录得峰值负载',
+    telemetryLoadEff: '电网运行效率',
+    aiAdvice: '装配车间低压电容补偿柜当前富余4%的无功阻抗。在6号打螺丝工位处于空闲/停机状态时自动将其切离电网，可立即提升约0.05的系统功率因数Cosφ。',
+    weeklySavingsCost: '¥1,650.00'
   }
 };
 
@@ -197,6 +221,31 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
   // Cosφ power factor state, interactive calibration!
   const [powerFactor, setPowerFactor] = useState<number>(0.91);
   const [isCompensating, setIsCompensating] = useState<boolean>(false);
+
+  // Real-time ticking clock for dynamic tariff checking
+  const [localTime, setLocalTime] = useState<Date>(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setLocalTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activeTariff = useMemo(() => {
+    const hour = localTime.getHours();
+    const minute = localTime.getMinutes();
+    const totalMinutes = hour * 60 + minute;
+
+    // Peak: 09:30-11:30 (570-690) & 17:00-20:00 (1020-1200)
+    const isPeak = (totalMinutes >= 570 && totalMinutes < 690) || (totalMinutes >= 1020 && totalMinutes < 1200);
+    
+    // Off-Peak: 22:00-06:00 (1320-1440 or 0-360)
+    const isOffPeak = totalMinutes >= 1320 || totalMinutes < 360;
+
+    if (isPeak) return 'peak';
+    if (isOffPeak) return 'offPeak';
+    return 'normal';
+  }, [localTime]);
 
   // Keep a local dictionary tracking which stations are in ECO / Optimized mode
   const [stationSettings, setStationSettings] = useState<Record<string, { eco: boolean, optimized: boolean }>>({
@@ -465,151 +514,322 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id="energy-commands-tariff-layer">
         
         {/* Left Column (2 span): Core SVG Charts & Peak demand calendars */}
-        <div className="lg:col-span-2 bg-[#111827]/40 border border-slate-800/80 rounded-xl p-5 shadow-lg space-y-6">
+        <div className="lg:col-span-2 bg-[#111827]/40 border border-slate-800/80 rounded-xl p-5 shadow-lg flex flex-col justify-between">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
             
             {/* Box A: Wave Load drawing */}
-            <div className="space-y-3 bg-slate-950/20 p-4 border border-slate-800/40 rounded-xl">
-              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <BarChart3 className="w-4 h-4 text-blue-400" />
-                <span>{t.chartTitle}</span>
-              </h4>
+            <div className="bg-slate-950/20 p-4 border border-slate-800/40 rounded-xl flex flex-col justify-between h-full space-y-4">
+              <div className="space-y-3 flex-1 flex flex-col justify-between">
+                <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 shrink-0">
+                  <BarChart3 className="w-4 h-4 text-blue-400" />
+                  <span>{t.chartTitle}</span>
+                </h4>
 
-              {/* Custom SVG Line drawing */}
-              <div className="relative pt-2">
-                <svg viewBox="0 0 420 160" className="w-full h-36 overflow-visible">
-                  {/* Grid layout */}
-                  <line x1="25" y1="20" x2="400" y2="20" stroke="#1e293b" strokeWidth="0.5" />
-                  <line x1="25" y1="70" x2="400" y2="70" stroke="#1e293b" strokeWidth="0.5" />
-                  <line x1="25" y1="120" x2="400" y2="120" stroke="#1e293b" strokeWidth="0.5" />
+                {/* Custom SVG Line drawing */}
+                <div className="relative pt-2 flex-1 flex flex-col justify-center min-h-[144px]">
+                  <svg viewBox="0 0 420 160" className="w-full h-full max-h-[160px] overflow-visible">
+                    {/* Grid layout */}
+                    <line x1="25" y1="20" x2="400" y2="20" stroke="#1e293b" strokeWidth="0.5" />
+                    <line x1="25" y1="70" x2="400" y2="70" stroke="#1e293b" strokeWidth="0.5" />
+                    <line x1="25" y1="120" x2="400" y2="120" stroke="#1e293b" strokeWidth="0.5" />
 
-                  {/* Y-axis metrics */}
-                  <text x="5" y="24" className="text-[8px] font-mono fill-slate-600">80kW</text>
-                  <text x="5" y="74" className="text-[8px] font-mono fill-slate-600">40kW</text>
-                  <text x="5" y="124" className="text-[8px] font-mono fill-slate-600">0</text>
+                    {/* Y-axis metrics */}
+                    <text x="5" y="24" className="text-[8px] font-mono fill-slate-600">80kW</text>
+                    <text x="5" y="74" className="text-[8px] font-mono fill-slate-600">40kW</text>
+                    <text x="5" y="124" className="text-[8px] font-mono fill-slate-600">0</text>
 
-                  {/* Shaded Energy Area */}
-                  {chartPoints.length > 0 && (
-                    <path
-                      d={`M ${chartPoints[0].x} 120
-                          ${chartPoints.map(p => `L ${p.x} ${p.y}`).join(' ')}
-                          L ${chartPoints[chartPoints.length - 1].x} 120 Z`}
-                      fill="url(#area-blue-energy)"
-                      opacity="0.12"
+                    {/* Shaded Energy Area */}
+                    {chartPoints.length > 0 && (
+                      <path
+                        d={`M ${chartPoints[0].x} 120
+                            ${chartPoints.map(p => `L ${p.x} ${p.y}`).join(' ')}
+                            L ${chartPoints[chartPoints.length - 1].x} 120 Z`}
+                        fill="url(#area-blue-energy)"
+                        opacity="0.12"
+                      />
+                    )}
+
+                    {/* Theoretical Peak Threshold Limit Line */}
+                    <line
+                      x1="25"
+                      y1={chartPoints[0].peakY}
+                      x2="400"
+                      y2={chartPoints[0].peakY}
+                      stroke="#ef4444"
+                      strokeWidth="1"
+                      strokeDasharray="4 4"
                     />
-                  )}
-
-                  {/* Theoretical Peak Threshold Limit Line */}
-                  <line
-                    x1="25"
-                    y1={chartPoints[0].peakY}
-                    x2="400"
-                    y2={chartPoints[0].peakY}
-                    stroke="#ef4444"
-                    strokeWidth="1"
-                    strokeDasharray="4 4"
-                  />
-                  <text x="320" y={chartPoints[0].peakY - 4} className="text-[7.5px] font-bold fill-red-500 tracking-wider">
-                    {t.chartPeakLoad.toUpperCase()} (65kW)
-                  </text>
-
-                  {/* Actual load spectrum point-to-point */}
-                  {chartPoints.length > 0 && (
-                    <path
-                      d={`M ${chartPoints[0].x} ${chartPoints[0].y}
-                          ${chartPoints.map(p => `L ${p.x} ${p.y}`).join(' ')}`}
-                      fill="none"
-                      className="stroke-blue-400"
-                      strokeWidth="2"
-                    />
-                  )}
-
-                  {/* Circular dots */}
-                  {chartPoints.map((pt, index) => (
-                    <circle
-                      key={index}
-                      cx={pt.x}
-                      cy={pt.y}
-                      r="3"
-                      className="fill-slate-950 stroke-blue-400 stroke"
-                    />
-                  ))}
-
-                  {/* Horiz labels */}
-                  {chartPoints.map((pt, index) => (
-                    <text
-                      key={index}
-                      x={pt.x}
-                      y="136"
-                      textAnchor="middle"
-                      className="text-[8px] font-mono fill-slate-500"
-                    >
-                      {pt.txt}
+                    <text x="320" y={chartPoints[0].peakY - 4} className="text-[7.5px] font-bold fill-red-500 tracking-wider">
+                      {t.chartPeakLoad.toUpperCase()} (65kW)
                     </text>
-                  ))}
 
-                  {/* Gradients */}
-                  <defs>
-                    <linearGradient id="area-blue-energy" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+                    {/* Actual load spectrum point-to-point */}
+                    {chartPoints.length > 0 && (
+                      <path
+                        d={`M ${chartPoints[0].x} ${chartPoints[0].y}
+                            ${chartPoints.map(p => `L ${p.x} ${p.y}`).join(' ')}`}
+                        fill="none"
+                        className="stroke-blue-400"
+                        strokeWidth="2"
+                      />
+                    )}
 
-                {/* Legends */}
-                <div className="flex justify-center items-center gap-1.5 mt-2 text-[9.5px]">
-                  <span className="w-5 h-0.5 bg-blue-400"></span>
-                  <span className="text-slate-400">{t.chartActualLoad}</span>
+                    {/* Circular dots */}
+                    {chartPoints.map((pt, index) => (
+                      <circle
+                        key={index}
+                        cx={pt.x}
+                        cy={pt.y}
+                        r="3"
+                        className="fill-slate-950 stroke-blue-400 stroke"
+                      />
+                    ))}
+
+                    {/* Horiz labels */}
+                    {chartPoints.map((pt, index) => (
+                      <text
+                        key={index}
+                        x={pt.x}
+                        y="136"
+                        textAnchor="middle"
+                        className="text-[8px] font-mono fill-slate-500"
+                      >
+                        {pt.txt}
+                      </text>
+                    ))}
+
+                    {/* Gradients */}
+                    <defs>
+                      <linearGradient id="area-blue-energy" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+
+                  {/* Legends */}
+                  <div className="flex justify-center items-center gap-1.5 mt-2 text-[9.5px] shrink-0">
+                    <span className="w-5 h-0.5 bg-blue-400"></span>
+                    <span className="text-slate-400">{t.chartActualLoad}</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Telemetry Stats Row to optimize space and look premium */}
+              <div className="grid grid-cols-3 gap-2 pt-3 mt-1 border-t border-slate-800/30 font-mono text-[10.5px] shrink-0">
+                <div className="bg-slate-950/40 p-2 border border-slate-900/60 rounded">
+                  <span className="text-slate-500 text-[9px] block">{t.telemetryAvgLoad}</span>
+                  <span className="font-bold text-slate-300">46.5 kW</span>
+                </div>
+                <div className="bg-slate-950/40 p-2 border border-slate-900/60 rounded">
+                  <span className="text-slate-500 text-[9px] block">{t.telemetryPeakLoad}</span>
+                  <span className="font-bold text-red-400">58.2 kW</span>
+                </div>
+                <div className="bg-slate-950/40 p-2 border border-slate-900/60 rounded">
+                  <span className="text-slate-500 text-[9px] block">{t.telemetryLoadEff}</span>
+                  <span className="font-bold text-emerald-400">79.2%</span>
+                </div>
+              </div>
             </div>
 
             {/* Box B: Peak Demand Optimization Schedule list */}
-            <div className="space-y-4 bg-slate-950/20 p-4 border border-slate-800/40 rounded-xl">
-              <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                <Calendar className="w-4.5 h-4.5 text-emerald-400 animate-pulse" />
-                <span>{t.peakDemandTitle}</span>
-              </h4>
+            <div className="bg-slate-950/20 p-4 border border-slate-800/40 rounded-xl flex flex-col justify-between h-full space-y-4">
+              <div className="space-y-3 flex-1 flex flex-col">
+                <h4 className="text-xs font-bold text-slate-200 flex items-center gap-1.5 shrink-0">
+                  <Calendar className="w-4.5 h-4.5 text-emerald-400 animate-pulse" />
+                  <span>{t.peakDemandTitle}</span>
+                </h4>
 
-              <p className="text-[10px] text-slate-400 leading-normal">
-                {t.peakDemandSub}
-              </p>
+                <p className="text-[10px] text-slate-400 leading-normal shrink-0">
+                  {t.peakDemandSub}
+                </p>
 
-              {/* Rung listing tariff blocks */}
-              <div className="space-y-2 pt-2 text-[11px]" id="energy-tariff-schedule-blocks">
-                
-                {/* 1. Peak hour */}
-                <div className="flex items-center justify-between p-2 rounded bg-[#7f1d1d]/14 border border-red-500/20">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                    <span className="font-bold text-red-400">{t.tariffPeak}</span>
-                  </div>
-                  <span className="font-mono text-[10px] text-slate-400">09:30 - 11:30 & 17:00 - 20:00</span>
+                {/* Rung listing tariff blocks - Rebuilt to completely avoid text squishing */}
+                <div className="space-y-3 pt-2 flex-1 flex flex-col justify-center animate-scaleIn" id="energy-tariff-schedule-blocks">
+                  {(() => {
+                    const tariffRates = {
+                      vi: {
+                        peak: '3,220đ/kWh',
+                        normal: '1,685đ/kWh',
+                        offPeak: '1,010đ/kWh',
+                        peakLabel: 'Giờ Cao Điểm',
+                        normalLabel: 'Giờ Bình Thường',
+                        offPeakLabel: 'Giờ Thấp Điểm',
+                        aiPeak: 'Tiết giảm tải s6/s9',
+                        aiNormal: 'Vận hành chuẩn',
+                        aiOffPeak: 'Tối đa công suất',
+                        statusActive: 'ĐANG ÁP DỤNG',
+                        statusStandby: 'Chờ ca',
+                      },
+                      en: {
+                        peak: '$0.138/kWh',
+                        normal: '$0.072/kWh',
+                        offPeak: '$0.043/kWh',
+                        peakLabel: 'Peak Hours',
+                        normalLabel: 'Regular Shift',
+                        offPeakLabel: 'Off-Peak Midnight',
+                        aiPeak: 'Limit s6/s9 load',
+                        aiNormal: 'Normal operations',
+                        aiOffPeak: 'Maximize heavy runs',
+                        statusActive: 'ACTIVE',
+                        statusStandby: 'Standby',
+                      },
+                      zh: {
+                        peak: '0.92元/kWh',
+                        normal: '0.48元/kWh',
+                        offPeak: '0.29元/kWh',
+                        peakLabel: '尖峰电价时段',
+                        normalLabel: '常规电价时段',
+                        offPeakLabel: '低谷优惠电价',
+                        aiPeak: '限电 s6/s9',
+                        aiNormal: '标定负荷运转',
+                        aiOffPeak: '推荐满载运行',
+                        statusActive: '正在计费',
+                        statusStandby: '等待时段',
+                      }
+                    }[currentLanguage];
+
+                    return (
+                      <>
+                        {/* 1. Peak hour */}
+                        <div className={`p-3 rounded-xl border transition-all duration-300 flex flex-col justify-between space-y-2.5 ${
+                          activeTariff === 'peak'
+                            ? 'bg-[#ef4444]/10 border-red-500/40 text-white shadow-[0_0_15px_rgba(239,68,68,0.08)]'
+                            : 'bg-slate-950/30 border-slate-900/60 opacity-60 hover:opacity-100'
+                        }`}>
+                          {/* Row 1: Icon, Title, Active Dot, Price */}
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Zap className={`w-4 h-4 ${activeTariff === 'peak' ? 'text-red-500 animate-pulse' : 'text-slate-500'}`} />
+                              <span className="font-bold text-xs text-slate-200">{tariffRates.peakLabel}</span>
+                              {activeTariff === 'peak' && (
+                                <span className="flex h-2 w-2 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                              )}
+                            </div>
+                            <span className={`font-mono font-bold text-xs ${activeTariff === 'peak' ? 'text-red-400' : 'text-slate-400'}`}>{tariffRates.peak}</span>
+                          </div>
+
+                          {/* Row 2: Clock Range & Badge Actions */}
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-800/30">
+                            <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-600" />
+                              <span>09:30 - 11:30 & 17:00 - 20:00</span>
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${
+                                activeTariff === 'peak' ? 'bg-red-500/20 text-red-300' : 'bg-slate-950 text-slate-600'
+                              }`}>{tariffRates.aiPeak}</span>
+                              <span className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${
+                                activeTariff === 'peak'
+                                  ? 'bg-red-500/25 text-red-400 border border-red-500/30 animate-pulse'
+                                  : 'bg-slate-950 text-slate-600 border border-slate-900/40'
+                              }`}>
+                                {activeTariff === 'peak' ? tariffRates.statusActive : tariffRates.statusStandby}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Normal hour */}
+                        <div className={`p-3 rounded-xl border transition-all duration-300 flex flex-col justify-between space-y-2.5 ${
+                          activeTariff === 'normal'
+                            ? 'bg-[#f59e0b]/10 border-amber-500/40 text-white shadow-[0_0_15px_rgba(245,158,11,0.08)]'
+                            : 'bg-slate-950/30 border-slate-900/60 opacity-60 hover:opacity-100'
+                        }`}>
+                          {/* Row 1: Icon, Title, Active Dot, Price */}
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Activity className={`w-4 h-4 ${activeTariff === 'normal' ? 'text-amber-500 animate-pulse' : 'text-slate-500'}`} />
+                              <span className="font-bold text-xs text-slate-200">{tariffRates.normalLabel}</span>
+                              {activeTariff === 'normal' && (
+                                <span className="flex h-2 w-2 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                </span>
+                              )}
+                            </div>
+                            <span className={`font-mono font-bold text-xs ${activeTariff === 'normal' ? 'text-amber-400' : 'text-slate-400'}`}>{tariffRates.normal}</span>
+                          </div>
+
+                          {/* Row 2: Clock Range & Badge Actions */}
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-800/30">
+                            <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-600" />
+                              <span>06:00-09:30 & 11:30-17:00 & 20:00-22:00</span>
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${
+                                activeTariff === 'normal' ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-950 text-slate-600'
+                              }`}>{tariffRates.aiNormal}</span>
+                              <span className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${
+                                activeTariff === 'normal'
+                                  ? 'bg-amber-500/25 text-amber-400 border border-amber-500/30 animate-pulse'
+                                  : 'bg-slate-950 text-slate-600 border border-slate-900/40'
+                              }`}>
+                                {activeTariff === 'normal' ? tariffRates.statusActive : tariffRates.statusStandby}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 3. Off peak hour */}
+                        <div className={`p-3 rounded-xl border transition-all duration-300 flex flex-col justify-between space-y-2.5 ${
+                          activeTariff === 'offPeak'
+                            ? 'bg-[#10b981]/10 border-emerald-500/40 text-white shadow-[0_0_15px_rgba(16,185,129,0.08)]'
+                            : 'bg-slate-950/30 border-slate-900/60 opacity-60 hover:opacity-100'
+                        }`}>
+                          {/* Row 1: Icon, Title, Active Dot, Price */}
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                              <Leaf className={`w-4 h-4 ${activeTariff === 'offPeak' ? 'text-emerald-500 animate-pulse' : 'text-slate-500'}`} />
+                              <span className="font-bold text-xs text-slate-200">{tariffRates.offPeakLabel}</span>
+                              {activeTariff === 'offPeak' && (
+                                <span className="flex h-2 w-2 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
+                              )}
+                            </div>
+                            <span className={`font-mono font-bold text-xs ${activeTariff === 'offPeak' ? 'text-emerald-400' : 'text-slate-400'}`}>{tariffRates.offPeak}</span>
+                          </div>
+
+                          {/* Row 2: Clock Range & Badge Actions */}
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-800/30">
+                            <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-slate-600" />
+                              <span>22:00 - 06:00 (Hôm sau)</span>
+                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide ${
+                                activeTariff === 'offPeak' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-950 text-slate-600'
+                              }`}>{tariffRates.aiOffPeak}</span>
+                              <span className={`text-[8.5px] px-1.5 py-0.5 rounded font-mono font-bold uppercase ${
+                                activeTariff === 'offPeak'
+                                  ? 'bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 animate-pulse'
+                                  : 'bg-slate-950 text-slate-600 border border-slate-900/40'
+                              }`}>
+                                {activeTariff === 'offPeak' ? tariffRates.statusActive : tariffRates.statusStandby}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
-
-                {/* 2. Normal hour */}
-                <div className="flex items-center justify-between p-2 rounded bg-amber-500/5 border border-amber-500/10">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span className="font-bold text-amber-400">{t.tariffNormal}</span>
-                  </div>
-                  <span className="font-mono text-[10px] text-slate-400">06:00 - 09:30 & 11:30 - 17:00</span>
-                </div>
-
-                {/* 3. Off peak hour */}
-                <div className="flex items-center justify-between p-2 rounded bg-emerald-500/5 border border-emerald-500/10">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span className="font-bold text-emerald-400">{t.tariffOffPeak}</span>
-                  </div>
-                  <span className="font-mono text-[10px] text-slate-500">22:00 - 06:00 (Hôm sau)</span>
-                </div>
-
               </div>
 
+              {/* Dynamic Energy Grid Standard Tag */}
+              <div className="p-2.5 rounded-lg bg-emerald-950/10 border border-emerald-900/25 flex gap-2 items-center text-[10px] text-slate-400 shrink-0">
+                <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>
+                  {currentLanguage === 'vi' ? 'Biểu giá tự động đồng bộ theo múi giờ hệ thống EVN.' : 'Tariff synchronized with local power utility grid time-brackets.'}
+                </span>
+              </div>
             </div>
 
           </div>
@@ -665,11 +885,11 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
                 </div>
               </button>
 
-              {/* Energy audit information footer */}
-              <div className="p-3.5 rounded-lg bg-indigo-950/15 border border-indigo-900/25 flex gap-2.5 items-start mt-2">
-                <Sparkles className="w-5.5 h-5.5 text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+              {/* Intelligent dynamic advisor */}
+              <div className="bg-indigo-950/20 border border-indigo-900/30 p-3 rounded-lg flex items-start gap-2.5 mt-2">
+                <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
                 <div className="text-[10px] text-slate-400 leading-relaxed font-sans">
-                  <strong>Khuyến nghị tự động SCADA AI:</strong> {currentLanguage === 'vi' ? 'Tiết diện tụ điện phân xưởng lắp ráp đang thừa 4% hệ điện cảm. Tự động tắt máy sới s6 khi lò rèn ở trạng thái stopped giúp bù 0.05 Cosφ tức thời.' : 'Automatic capacitor monitoring detects active capacitance. Shunt idle elements on Station 6 to automatically balance phase harmonics.'}
+                  <strong>{currentLanguage === 'vi' ? 'Khuyến nghị tự động SCADA AI:' : currentLanguage === 'zh' ? 'SCADA AI 智能推荐:' : 'Automatic SCADA AI Advice:'}</strong> {t.aiAdvice}
                 </div>
               </div>
             </div>
@@ -680,7 +900,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
               <div className="grid grid-cols-2 gap-2 pt-1 font-mono text-[10.5px]">
                 <div className="bg-slate-900/30 p-2 border border-slate-900/80 rounded">
                   <span className="text-slate-400 text-[10px] tracking-tight">{t.savingsCost}</span>
-                  <p className="font-bold text-blue-400 pt-0.5">{currentLanguage === 'vi' ? '4,850,000 đ' : '$230.50'}</p>
+                  <p className="font-bold text-blue-400 pt-0.5">{t.weeklySavingsCost}</p>
                 </div>
                 <div className="bg-slate-900/30 p-2 border border-slate-900/80 rounded">
                   <span className="text-slate-400 text-[10px] tracking-tight">{t.savingsCoal}</span>
@@ -709,14 +929,13 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
             </p>
           </div>
 
-          {/* Search box and device inputs */}
           <div className="relative w-full sm:w-64">
             <span className="absolute left-3 top-2.5 text-slate-500">
               <Search className="w-3.5 h-3.5" />
             </span>
             <input
               type="text"
-              placeholder="Tìm kiếm trạm phát, điện áp..."
+              placeholder={t.searchPlaceholderDevice}
               value={searchWord}
               onChange={(e) => setSearchWord(e.target.value)}
               className="w-full bg-slate-950 text-white pl-8 pr-3 py-2 text-xs rounded-lg border border-slate-900 outline-none focus:border-blue-500/50 placeholder-slate-500"
@@ -797,7 +1016,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
                               : 'bg-blue-600/10 hover:bg-blue-600/25 text-blue-400 border border-blue-500/25'
                           }`}
                         >
-                          {row.ecoMode ? 'Normal mode' : t.btnToggleEco}
+                          {row.ecoMode ? t.normalMode : t.btnToggleEco}
                         </button>
                       </div>
                     </td>
@@ -807,7 +1026,7 @@ export const EnergyView: React.FC<EnergyViewProps> = ({
               ) : (
                 <tr>
                   <td colSpan={7} className="text-center p-8 text-slate-500 italic">
-                    Không tìm thấy trạm phù hợp...
+                    {t.noStations}
                   </td>
                 </tr>
               )}

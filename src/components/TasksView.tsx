@@ -49,6 +49,7 @@ export interface Task {
 }
 
 // Local translation block for Tasks Screen to align beautifully with current Vietnamese preference
+// Local translation block for Tasks Screen to align beautifully with current Vietnamese preference
 const localTasksTranslations = {
   vi: {
     title: 'Trung tâm Chỉ huy & Giao nhiệm vụ Vận hành',
@@ -89,7 +90,16 @@ const localTasksTranslations = {
     toastStatusChange: 'Nhiệm vụ đã được chuyển trạng thái sang:',
     toastDeleted: 'Đã huỷ bỏ lệnh vận hành.',
     toastQuickS7: 'Lệnh khẩn: Đang nạp tiếp liệu cho Trạm 7. Băng tải đã chạy trở lại!',
-    toastQuickS6: 'Lệnh khẩn: Trục động cơ s5 và s6 đã được hiệu chuẩn và giảm tải nóng!'
+    toastQuickS6: 'Lệnh khẩn: Trục động cơ s5 và s6 đã được hiệu chuẩn và giảm tải nóng!',
+    all: 'Tất cả',
+    acknowledged: 'Đã ghi nhận',
+    operatorLabel: 'Nhân sự:',
+    dueToday: 'Hạn chót:',
+    placeholderTitleVi: 'Ví dụ: Hiệu chỉnh gối đỡ băng tải',
+    placeholderTitleEn: 'Ví dụ: Re-align conveyor bearing tension',
+    placeholderDesc: 'Hướng dẫn bổ sung dọn rác cơ cấu xả khí nén hoặc bù hụt...',
+    plcProtocolTitle: 'Quy chuẩn vận hành PLC',
+    plcProtocolDesc: 'Mỗi khi kỹ sư duyệt hoàn thành (Duyệt nghiệm thu) một công việc, hệ thống truyền dẫn SCADA sẽ tự động phát tín hiệu búa lấp Modbus TCP để khôi phục chỉ số OEE và khởi động lại băng tải của trạm máy ở trạng thái lỗi.'
   },
   en: {
     title: 'Operational Task & Dispatch Command',
@@ -130,7 +140,16 @@ const localTasksTranslations = {
     toastStatusChange: 'Task stage updated to:',
     toastDeleted: 'Operational dispatch order discarded.',
     toastQuickS7: 'Emergency order: Refilling s7. Main line conveyor resumed!',
-    toastQuickS6: 'Emergency order: Z-axis screwing components aligned and temperature normalized!'
+    toastQuickS6: 'Emergency order: Z-axis screwing components aligned and temperature normalized!',
+    all: 'All',
+    acknowledged: 'Acknowledged',
+    operatorLabel: 'Operator:',
+    dueToday: 'Due Today:',
+    placeholderTitleVi: 'e.g. Hiệu chỉnh gối đỡ băng tải',
+    placeholderTitleEn: 'e.g. Re-align conveyor bearing tension',
+    placeholderDesc: 'Complementary safety instructions or guidelines...',
+    plcProtocolTitle: 'PLC Modbus Dispatch Protocol',
+    plcProtocolDesc: 'Closing work orders through the Command validation loop transmits automated corrective bytes directly to on-line PLC actuators. This updates general OEE scoreboards and clears physical line stoppages.'
   },
   zh: {
     title: '生产排班与工艺派单指挥台',
@@ -171,23 +190,32 @@ const localTasksTranslations = {
     toastStatusChange: '指令阶段已被更新为:',
     toastDeleted: '工单已被作废回收。',
     toastQuickS7: '紧急广播：7号站物料灌装。自动化输送网带已再次启动！',
-    toastQuickS6: '紧急广播：s5与s6打螺丝主轴偏正重置，升温警告消失。'
+    toastQuickS6: '紧急广播：s5与s6打螺丝主轴偏正重置，升温警告消失。',
+    all: '全部',
+    acknowledged: '已确认',
+    operatorLabel: '操作员:',
+    dueToday: '今日截止:',
+    placeholderTitleVi: '例如：Hiệu chỉnh gối đỡ băng tải',
+    placeholderTitleEn: '例如：Re-align conveyor bearing tension',
+    placeholderDesc: '补充安全说明或指南...',
+    plcProtocolTitle: 'PLC Modbus 调度协议规范',
+    plcProtocolDesc: '每当工程师确认并完成（批准验收）一项任务时，SCADA传输系统将自动通过 Modbus TCP 协议下发纠偏指令，以恢复设备 OEE 指标并重启处于故障状态的工作站传送带。'
   }
 };
 
 export const DevicesListOptions = [
-  { id: 's1', labelVi: 'Trạm 1 - Phễu nạp mạch', labelEn: 'Station 1 - Vacuum Feeder' },
-  { id: 's2', labelVi: 'Trạm 2 - Băng tải gốc', labelEn: 'Station 2 - Conveyor Motor' },
-  { id: 's3', labelVi: 'Trạm 3 - Lắp jumper', labelEn: 'Station 3 - Jumper Inserter' },
-  { id: 's4', labelVi: 'Trạm 4 - Lắp bản MCB', labelEn: 'Station 4 - MCB Arm' },
-  { id: 's5', labelVi: 'Trạm 5 - Bắn vít tản nhiệt', labelEn: 'Station 5 - Heatsink Screw' },
-  { id: 's6', labelVi: 'Trạm 6 - Vặn ốc tản nhiệt lớn', labelEn: 'Station 6 - Large Screw Spindle' },
-  { id: 's7', labelVi: 'Trạm 7 - Lắp SMB', labelEn: 'Station 7 - SMB Assembly' },
-  { id: 's8', labelVi: 'Trạm 8 - Tổ hợp Chasis SMB', labelEn: 'Station 8 - Chassis Assy' },
-  { id: 's9', labelVi: 'Trạm 9 - Hoàn thiện', labelEn: 'Station 9 - QA Finish' },
-  { id: 'sc1', labelVi: 'Trạm 10 - Vỏ bảo vệ', labelEn: 'Station 10 - Protective Casing' },
-  { id: 'sc2', labelVi: 'Trạm 11 - Máy bắn vít tự động', labelEn: 'Station 11 - Auto Screwing' },
-  { id: 'sc3', labelVi: 'Trạm 12 - Robot lên liệu', labelEn: 'Station 12 - Loader Robot' },
+  { id: 's1', labelVi: 'Trạm 1 - Phễu nạp mạch', labelEn: 'Station 1 - Vacuum Feeder', labelZh: '1号站 - 真空电路板吸料' },
+  { id: 's2', labelVi: 'Trạm 2 - Băng tải gốc', labelEn: 'Station 2 - Conveyor Motor', labelZh: '2号站 - 主传送带电机' },
+  { id: 's3', labelVi: 'Trạm 3 - Lắp jumper', labelEn: 'Station 3 - Jumper Inserter', labelZh: '3号站 - 跳线安装机械手' },
+  { id: 's4', labelVi: 'Trạm 4 - Lắp bản MCB', labelEn: 'Station 4 - MCB Arm', labelZh: '4号站 - MCB 断路器底板' },
+  { id: 's5', labelVi: 'Trạm 5 - Bắn vít tản nhiệt', labelEn: 'Station 5 - Heatsink Screw', labelZh: '5号站 - 散热片锁螺丝' },
+  { id: 's6', labelVi: 'Trạm 6 - Vặn ốc tản nhiệt lớn', labelEn: 'Station 6 - Large Screw Spindle', labelZh: '6号站 - 散热器大拧紧螺轴' },
+  { id: 's7', labelVi: 'Trạm 7 - Lắp SMB', labelEn: 'Station 7 - SMB Assembly', labelZh: '7号站 - SMB 线路板装配' },
+  { id: 's8', labelVi: 'Trạm 8 - Tổ hợp Chasis SMB', labelEn: 'Station 8 - Chassis Assy', labelZh: '8号站 - 机箱底盘合装' },
+  { id: 's9', labelVi: 'Trạm 9 - Hoàn thiện', labelEn: 'Station 9 - QA Finish', labelZh: '9号站 - 终检质量放行' },
+  { id: 'sc1', labelVi: 'Trạm 10 - Vỏ bảo vệ', labelEn: 'Station 10 - Protective Casing', labelZh: '10号站 - 保护外壳压合' },
+  { id: 'sc2', labelVi: 'Trạm 11 - Máy bắn vít tự động', labelEn: 'Station 11 - Auto Screwing', labelZh: '11号站 - 自动打螺丝枪' },
+  { id: 'sc3', labelVi: 'Trạm 12 - Robot lên liệu', labelEn: 'Station 12 - Loader Robot', labelZh: '12号站 - 上料四轴机器人' },
 ];
 
 export const OperatorsList = [
@@ -617,7 +645,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
               >
                 {DevicesListOptions.map((opt) => (
                   <option key={opt.id} value={opt.id}>
-                    {currentLanguage === 'vi' ? opt.labelVi : opt.labelEn}
+                    {currentLanguage === 'vi' ? opt.labelVi : currentLanguage === 'zh' ? opt.labelZh : opt.labelEn}
                   </option>
                 ))}
               </select>
@@ -888,10 +916,10 @@ export const TasksView: React.FC<TasksViewProps> = ({
                           <div className="flex items-center gap-4 text-[10.5px] text-slate-500 pt-2 font-mono">
                             <span className="flex items-center gap-1">
                               <User className="w-3.5 h-3.5 text-slate-500" />
-                              Operator: <strong className="text-slate-300">{task.assignedTo}</strong>
+                              {localT.operatorLabel} <strong className="text-slate-300">{task.assignedTo}</strong>
                             </span>
                             <span>•</span>
-                            <span>Due Today: <strong className="text-slate-400">{task.dueDate}</strong></span>
+                            <span>{localT.dueToday} <strong className="text-slate-400">{task.dueDate}</strong></span>
                           </div>
                         </div>
 
@@ -915,7 +943,7 @@ export const TasksView: React.FC<TasksViewProps> = ({
                             ) : (
                               <span className="text-[11.5px] text-emerald-400 font-bold flex items-center gap-1 pr-1">
                                 <Check className="w-4 h-4 text-emerald-500 stroke-[3]" />
-                                Acknowledged
+                                {localT.acknowledged}
                               </span>
                             )}
 
@@ -968,12 +996,10 @@ export const TasksView: React.FC<TasksViewProps> = ({
               <div className="flex items-center gap-1 mb-1.5">
                 <Sparkles className="w-4.5 h-4.5 text-indigo-400 animate-pulse" />
                 <span className="font-bold text-slate-200">
-                  {currentLanguage === 'vi' ? 'Quy chuẩn vận hành PLC' : 'PLC Modbus Dispatch Protocol'}
+                  {localT.plcProtocolTitle}
                 </span>
               </div>
-              {currentLanguage === 'vi'
-                ? 'Mỗi khi kỹ sư duyệt hoàn thành (Duyệt nghiệm thu) một công việc, hệ thống truyền dẫn SCADA sẽ tự động phát tín hiệu búa lấp Modbus TCP để khôi phục chỉ số OEE và khởi động lại băng tải của trạm máy ở trạng thái lỗi.'
-                : 'Closing work orders through the Command validation loop transmits automated corrective bytes directly to on-line PLC actuators. This updates general OEE scoreboards and clears physical line stoppages.'}
+              {localT.plcProtocolDesc}
             </div>
 
           </div>

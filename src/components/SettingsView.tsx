@@ -33,12 +33,13 @@ interface SettingsViewProps {
   triggerToast: (msg: string) => void;
   steps: FlowStep[];
   setSteps: React.Dispatch<React.SetStateAction<FlowStep[]>>;
+  plcStatus?: any;
 }
 
 const localSettingsTranslations = {
   vi: {
     title: 'Hệ thống Quản trị & Cấu hình SCADA',
-    subtitle: 'Tinh chỉnh ngưỡng an toàn nhiệt độ cơ học PLC, thiết lập máy chủ kết nối truyền dữ liệu MQTT/Modbus, phân phối ca kỹ thuật và kích hoạt mô tơ mô phỏng.',
+    subtitle: 'Tinh chỉnh ngưỡng an toàn nhiệt độ cơ học PLC, thiết lập máy chủ kết nối truyền dữ liệu MQTT/PLC, phân phối ca kỹ thuật và kích hoạt mô tơ mô phỏng.',
     
     // Tabs
     tabSystem: 'Hệ thống & PLC',
@@ -47,15 +48,15 @@ const localSettingsTranslations = {
     tabOperators: 'Bàn giao Kỹ sư',
 
     // Section 1: System
-    plcConnTitle: 'Cấu hình và Đồng bộ Modbus TCP',
-    plcConnSub: 'Địa chỉ IP cổng nhận dữ liệu trực tiếp của tủ điều khiển trung tâm.',
-    labelIp: 'Địa chỉ IP Máy chủ SCADA',
-    labelPort: 'Cổng giao tiếp (Modbus TCP)',
-    labelPoll: 'Tần suất quét ghi (Hertz)',
+    plcConnTitle: 'Kết nối Mitsubishi PLC (MC Protocol)',
+    plcConnSub: 'Thiết lập địa chỉ IP truyền nhận dữ liệu trực tiếp với tủ điều khiển PLC Mitsubishi FX5U/Q-Series (3E Frame TCP).',
+    labelIp: 'Địa chỉ IP PLC Mitsubishi',
+    labelPort: 'Cổng giao tiếp (Mặc định: 5007)',
+    labelPoll: 'Chế độ truyền nhận',
     btnTestConn: 'Kiểm tra đường truyền PLC',
-    toastTesting: 'Đang gửi ping Modbus TCP packet...',
-    toastSuccessConn: 'Kết nối Modbus TCP thành công! Thời gian phản hồi: 12ms',
-    dbBackupTitle: 'Lưu trữ & Khôi phục bộ nhớ nhớ',
+    toastTesting: 'Đang gửi gói tin handshake kiểm tra cổng mạng PLC...',
+    toastSuccessConn: 'Kết nối cổng Mitsubishi PLC thành công!',
+    dbBackupTitle: 'Lưu trữ & Khôi phục bộ nhớ',
     dbBackupSub: 'Sao lưu cơ sở dữ liệu SCADA ra ổ đĩa cục bộ hoặc đặt lại dữ liệu mặc định của nhà máy.',
     btnReset: 'Đặt lại cấu hình gốc',
     toastReset: 'Đã đưa tất cả hệ thống và cảnh báo SCADA về mặc định!',
@@ -108,14 +109,14 @@ const localSettingsTranslations = {
     tabOperators: 'Crew Assignment',
 
     // Section 1: System
-    plcConnTitle: 'Modbus TCP Gateway Integration',
-    plcConnSub: 'Specify the physical IP address and ethernet routing for the main PLC cabinet.',
-    labelIp: 'Modbus Ethernet IP Address',
-    labelPort: 'Connection Port (Modbus TCP)',
-    labelPoll: 'System Polling Frequency',
+    plcConnTitle: 'Mitsubishi PLC Integration',
+    plcConnSub: 'Specify the physical IP address and ethernet routing for the Mitsubishi PLC cabinet (3E Frame TCP).',
+    labelIp: 'Mitsubishi PLC IP Address',
+    labelPort: 'Connection Port (Default: 5007)',
+    labelPoll: 'Data Sync Mode',
     btnTestConn: 'Test PLC Connection',
-    toastTesting: 'Despatching Modbus TCP ping blocks...',
-    toastSuccessConn: 'Modbus connection established! Ping response: 12ms',
+    toastTesting: 'Despatching MC Protocol connection handshake...',
+    toastSuccessConn: 'Mitsubishi PLC connection established successfully!',
     dbBackupTitle: 'Registry Storage & Restorations',
     dbBackupSub: 'Export current running states or factory-reset operational telemetry registry.',
     btnReset: 'Factory Reset All',
@@ -169,11 +170,6 @@ const localSettingsTranslations = {
     tabOperators: '现场组员排班',
 
     // Section 1: System
-    plcConnTitle: 'Modbus TCP 集中控制器通讯设置',
-    plcConnSub: '设定中央工艺控制电箱PLC对应的物理IP地址和通讯接口代码。',
-    labelIp: 'PLC 控制器 IPv4 地址',
-    labelPort: 'Modbus 对应通讯端口',
-    labelPoll: '控制链轮询频率 (Hz)',
     btnTestConn: '对PLC执行通讯握手',
     toastTesting: '正在发出 Modbus TCP 物理测试帧...',
     toastSuccessConn: '与PLC握手成功！全双工延迟: 12ms',
@@ -228,7 +224,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   setSimulationActive,
   triggerToast,
   steps,
-  setSteps
+  setSteps,
+  plcStatus
 }) => {
   const t = localSettingsTranslations[currentLanguage];
   const commonT = translations[currentLanguage];
@@ -236,11 +233,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Config tab state
   const [activeTab, setActiveTab] = useState<'system' | 'limits' | 'notifications' | 'operators'>('system');
 
-  // Tab 1: System Config state
-  const [ipAddress, setIpAddress] = useState<string>('192.168.1.150');
-  const [port, setPort] = useState<number>(502);
-  const [pollRate, setPollRate] = useState<number>(5);
+  // Tab 1: System Config state (Mitsubishi PLC Connection)
+  const [ipAddress, setIpAddress] = useState<string>('192.168.1.250');
+  const [port, setPort] = useState<number>(5007);
+  const [plcEnabled, setPlcEnabled] = useState<boolean>(false);
   const [testingConn, setTestingConn] = useState<boolean>(false);
+
+  // Load PLC initial status on mount
+  React.useEffect(() => {
+    fetch('/api/plc-status')
+      .then(res => res.json())
+      .then(data => {
+        setIpAddress(data.ip || '192.168.1.250');
+        setPort(data.port || 5007);
+        setPlcEnabled(data.enabled);
+      })
+      .catch(err => console.error("Error loading PLC status:", err));
+  }, []);
 
   // Tab 2: Limits state
   const [tempWarningVal, setTempWarningVal] = useState<number>(58);
@@ -262,14 +271,36 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     }, {} as Record<string, string>)
   );
 
-  // Test PLC IP connection simulation
+  // Test PLC IP connection via TCP port ping handshake
   const handleTestPLC = () => {
     setTestingConn(true);
     triggerToast(t.toastTesting);
-    setTimeout(() => {
-      setTestingConn(false);
-      triggerToast(t.toastSuccessConn);
-    }, 1500);
+    fetch('/api/plc-test-ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ipAddress, port })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setTestingConn(false);
+        triggerToast(data.message);
+      })
+      .catch(err => {
+        setTestingConn(false);
+        console.error("Error testing PLC connection:", err);
+        triggerToast("Lỗi kết nối mạng: Không gửi được yêu cầu!");
+      });
+  };
+
+  // Save PLC config on the backend
+  const handleSavePLCConfig = () => {
+    fetch('/api/plc-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ipAddress, port, enabled: plcEnabled })
+    })
+      .then(res => res.json())
+      .catch(err => console.error("Error saving PLC configuration:", err));
   };
 
   // Factory Reset
@@ -281,13 +312,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setVibErrorVal(3.5);
 
     // Keep state values default
-    setIpAddress('192.168.1.150');
-    setPort(502);
-    setPollRate(5);
+    setIpAddress('192.168.1.250');
+    setPort(5007);
+    setPlcEnabled(false);
     setSirensEnabled(true);
     setTelegramEnabled(false);
     setEmailEnabled(true);
     setAmbientSound(true);
+
+    // Sync reset to server plc-config
+    fetch('/api/plc-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: '192.168.1.250', port: 5007, enabled: false })
+    }).catch(err => console.error("Error resetting PLC on server:", err));
 
     // Revise step configurations
     setSteps((prev) =>
@@ -305,7 +343,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Apply limit updates
   const handleApplyLimits = () => {
-    // Limits usually affect warning levels or simulation behaviors
     triggerToast(t.toastLimitsApplied);
   };
 
@@ -322,6 +359,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Save all options
   const handleSaveAll = () => {
+    // Sync PLC config
+    handleSavePLCConfig();
+
     // Save operators to model steps
     setSteps((prev) =>
       prev.map((step) => ({
@@ -514,6 +554,54 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <p className="text-[10px] text-slate-500 mt-0.5">{t.plcConnSub}</p>
               </div>
 
+              {/* Real-time PLC Network Health Monitor Card */}
+              <div className="bg-slate-950/40 p-4 border border-slate-900 rounded-xl space-y-3">
+                <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider block">Trạng thái mạng PLC (PLC Network Status)</span>
+                
+                {plcStatus?.enabled ? (
+                  plcStatus?.connected ? (
+                    <div className="flex items-start space-x-3 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg">
+                      <div className="relative flex h-3.5 w-3.5 mt-0.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-xs font-bold uppercase tracking-wider">Đang kết nối (CONNECTED)</h4>
+                        <p className="text-[10px] text-slate-300 leading-normal">
+                          Máy chủ đang liên lạc trực tiếp với **Mitsubishi PLC** tại **{plcStatus.ip}:{plcStatus.port}**. 
+                          Bộ quét dữ liệu quét chu kỳ 3.5s đang nạp trực tiếp giá trị thanh ghi **D100-D123, D200-D203** và bit **M100-M111** lên giao diện. 
+                          *(Chế độ giả lập ngẫu nhiên đã được tạm dừng).*
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start space-x-3 p-3 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg">
+                      <div className="relative flex h-3.5 w-3.5 mt-0.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500"></span>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-xs font-bold uppercase tracking-wider">Đang kết nối lại (CONNECTING...)</h4>
+                        <p className="text-[10px] text-slate-300 leading-normal">
+                          Không thể thiết lập kết nối tới PLC tại **{plcStatus.ip}:{plcStatus.port}** (PLC mất nguồn hoặc lỏng cáp). 
+                          **Cơ chế dự phòng Fallback Simulator** đã tự động kích hoạt để duy trì hiển thị đo đạc an toàn hằng số trên Dashboard.
+                        </p>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="flex items-start space-x-3 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg">
+                    <span className="w-3.5 h-3.5 rounded-full bg-red-500 inline-block mt-0.5"></span>
+                    <div className="flex-1 space-y-1">
+                      <h4 className="text-xs font-bold uppercase tracking-wider">PLC Chưa kích hoạt (PLC INACTIVE)</h4>
+                      <p className="text-[10px] text-slate-400 leading-normal">
+                        Chế độ kết nối PLC đang ở trạng thái tắt. Hệ thống SCADA đang chạy hoàn toàn trên **Bộ giả lập cảm biến ngầm thời gian thực (Simulation Active)**.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Server Details Grid form */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
                 <div className="space-y-1.5">
@@ -523,6 +611,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     value={ipAddress}
                     onChange={(e) => setIpAddress(e.target.value)}
                     className="w-full bg-slate-950 px-3 py-2 text-xs border border-slate-800 hover:border-slate-700/60 font-mono text-slate-200 outline-none focus:border-blue-500 rounded-lg"
+                    placeholder="192.168.1.250"
                   />
                 </div>
 
@@ -531,36 +620,54 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <input
                     type="number"
                     value={port}
-                    onChange={(e) => setPort(parseInt(e.target.value) || 502)}
+                    onChange={(e) => setPort(parseInt(e.target.value) || 5007)}
                     className="w-full bg-slate-950 px-3 py-2 text-xs border border-slate-800 hover:border-slate-700/60 font-mono text-slate-200 outline-none focus:border-blue-500 rounded-lg"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t.labelPoll}</label>
-                  <select
-                    value={pollRate}
-                    onChange={(e) => setPollRate(parseInt(e.target.value) || 5)}
-                    className="w-full bg-slate-950 px-3 py-[9px] text-xs border border-slate-800 hover:border-slate-700/60 font-mono text-slate-200 outline-none focus:border-blue-500 rounded-lg cursor-pointer"
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Trạng thái truyền thông</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPlcEnabled(!plcEnabled);
+                      fetch('/api/plc-config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ip: ipAddress, port, enabled: !plcEnabled })
+                      })
+                        .then(() => triggerToast(!plcEnabled ? 'Đã kích hoạt chế độ Mitsubishi PLC!' : 'Đã tắt chế độ Mitsubishi PLC!'))
+                        .catch(() => triggerToast('Lỗi lưu cấu hình PLC!'));
+                    }}
+                    className={`w-full py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors border text-center ${
+                      plcEnabled
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                        : 'bg-slate-800/40 text-slate-400 border-slate-800'
+                    }`}
                   >
-                    <option value={1}>1 Hz (Truyền chậm)</option>
-                    <option value={5}>5 Hz (Standard)</option>
-                    <option value={10}>10 Hz (Tần suất lớn)</option>
-                    <option value={20}>20 Hz (Thời gian thực)</option>
-                  </select>
+                    {plcEnabled ? 'MỞ KẾT NỐI (PLC ON)' : 'TẮT KẾT NỐI (PLC OFF)'}
+                  </button>
                 </div>
               </div>
 
               {/* Run Test connection */}
-              <div className="pt-2">
+              <div className="pt-2 flex gap-3">
                 <button
                   type="button"
                   onClick={handleTestPLC}
                   disabled={testingConn}
-                  className="p-2 px-4 bg-slate-950 hover:bg-slate-900 border border-slate-800/80 text-xs font-semibold hover:text-white rounded-lg cursor-pointer transition-colors flex items-center gap-2 select-none"
+                  className="p-2.5 px-4 bg-slate-950 hover:bg-slate-900 border border-slate-800/80 text-xs font-semibold hover:text-white rounded-lg cursor-pointer transition-colors flex items-center gap-2 select-none"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 text-blue-400 ${testingConn ? 'animate-spin' : ''}`} />
                   <span>{t.btnTestConn}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSavePLCConfig}
+                  className="p-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg cursor-pointer transition-colors"
+                >
+                  Áp dụng cấu hình (Apply Settings)
                 </button>
               </div>
 
@@ -595,9 +702,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               {/* Terminal mock buffer logs */}
               <div className="bg-slate-950/80 p-3 rounded-lg border border-slate-900/60 font-mono text-[9.5px] text-slate-500 space-y-1 block leading-normal">
-                <span className="text-blue-500">[MODBUS_MASTER]:</span> INITIALIZING SOCK_STREAM IN CLIENT MODE... <br />
-                <span className="text-emerald-500">[MODBUS_MASTER]:</span> BIND OK TO GATEWAY {ipAddress}:{port} POLLING Hz={pollRate} <br />
-                <span className="text-purple-500">[PLC_REGISTERS]:</span> SCAN COMPLETED. 0 PARAMS DESYNCED IN STACKS.
+                <span className="text-blue-500">[MC_PROTOCOL_3E]:</span> INITIALIZING SOCKET STREAM AT PORT {port}... <br />
+                {plcStatus?.connected ? (
+                  <>
+                    <span className="text-emerald-500">[MC_PROTOCOL_3E]:</span> CONNECTED TO PLC AT {ipAddress}:{port} OK <br />
+                    <span className="text-emerald-500">[MC_REGISTERS]:</span> BATCH READ D100-D123, D200-D203 SUCCESS (48 BYTES) <br />
+                    <span className="text-emerald-500">[MC_COILS]:</span> BATCH READ M100-M111 SUCCESS (12 BITS)
+                  </>
+                ) : plcEnabled ? (
+                  <>
+                    <span className="text-yellow-500">[MC_PROTOCOL_3E]:</span> SOCKET CONNECTING TO {ipAddress}:{port}... <br />
+                    <span className="text-amber-500">[FALLBACK_SIMULATOR]:</span> PLC OFFLINE. GENERATING MOCK DATA REGISTER telemetry...
+                  </>
+                ) : (
+                  <>
+                    <span className="text-slate-600">[PLC_MASTER]:</span> INACTIVE. RUNNING LOCAL SIMULATOR LOOP.
+                  </>
+                )}
               </div>
 
             </div>
